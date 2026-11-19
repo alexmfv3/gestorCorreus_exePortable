@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>Gestor de Correus</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#f3f4f8; --card:#fff; --line:#e8e9f1; --line2:#f0f1f6; --ink:#15151f; --ink2:#2b2c3a; --muted:#6c7084; --faint:#9a9db0;
+  --accent:#5a4cf0; --accent2:#7b5cff; --accent-soft:#efedff; --accent-line:#c9c2ff;
+  --green:#109a4d; --green-soft:#e5f7ec; --red:#e0393e; --red-soft:#fdeced; --amber:#b86e00; --amber-soft:#fff4e0;
+  --radius:22px; --shadow:0 1px 2px rgba(20,20,40,.04),0 8px 24px rgba(20,20,40,.04);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+svg{flex:none}
+.app{display:grid;grid-template-columns:300px 1fr;height:100vh}
+
+/* ---------- sidebar */
+aside{background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:34px 22px 22px}
+.brand{display:flex;align-items:center;gap:16px;padding:0 6px 34px}
+.logo{width:58px;height:58px;border-radius:17px;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(140deg,var(--accent2),var(--accent));box-shadow:0 10px 24px rgba(90,76,240,.35)}
+.brand b{font-size:22px;letter-spacing:.3px;line-height:1.05;font-weight:800}
+.navlabel{font-size:12px;font-weight:700;color:var(--faint);letter-spacing:.8px;margin:14px 12px 8px}
+.nav{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:14px;cursor:pointer;color:var(--ink2);font-size:16px;margin-bottom:4px;border:0;background:none;width:100%;text-align:left}
+.nav:hover{background:#f6f6fb}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .cnt{margin-left:auto;font-size:12px;background:#f0f0f6;color:var(--muted);padding:2px 8px;border-radius:99px}
+.nav.on .cnt{background:#fff;color:var(--accent)}
+.side-foot{margin-top:auto;border-top:1px solid var(--line);padding-top:18px;display:flex;align-items:center;gap:12px}
+.side-foot .av{width:46px;height:46px;border-radius:50%}
+.side-foot .who{min-width:0;flex:1}
+.side-foot .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-foot .who span{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+
+/* ---------- main */
+main{overflow:auto;padding:30px 44px 120px;position:relative}
+.toplabel{font-size:12px;font-weight:700;color:var(--faint);letter-spacing:.8px;margin-bottom:10px}
+.accbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.acc{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:10px 18px 10px 10px;cursor:pointer;min-width:230px;text-align:left}
+.acc:hover{border-color:var(--accent-line)}
+.acc.on{border-color:var(--accent);background:#fbfaff}
+.acc .ic{width:40px;height:40px;border-radius:11px;background:#f1f1f7;display:grid;place-items:center;position:relative;color:var(--accent);font-weight:800}
+.acc .ic i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#c6c8d4;border:2px solid #fff}
+.acc .ic i.ok{background:#1fbf66}
+.acc b{display:block;font-size:15px}
+.acc.on b{color:var(--accent)}
+.acc span{font-size:13px;color:var(--muted)}
+.acc.add{min-width:0;border-style:dashed;color:var(--accent);font-weight:600;padding:10px 18px}
+h1{font-size:44px;margin:4px 0 6px;letter-spacing:-.6px;font-weight:800}
+.sub{color:var(--muted);font-size:16px;margin:0 0 24px}
+.cards2{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid #eef0f5}
+.hero{display:flex;gap:24px;align-items:center;padding:28px 32px}
+.hero .big{width:96px;height:96px;border-radius:24px;display:grid;place-items:center;color:#fff;flex:none;
+  background:linear-gradient(140deg,#6c8cff,var(--accent));box-shadow:0 12px 26px rgba(90,76,240,.3)}
+.hero .big.v{background:linear-gradient(140deg,var(--accent2),#5b3fe0)}
+.hero h2{margin:0;font-size:28px;font-weight:700;letter-spacing:-.3px}
+.hero p{margin:4px 0 10px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;font-size:14px;font-weight:600;background:var(--green-soft);color:var(--green)}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.grey{background:#f0f0f5;color:var(--muted)} .pill.red{background:var(--red-soft);color:var(--red)}
+.pill.amber{background:var(--amber-soft);color:var(--amber)} .pill.vio{background:var(--accent-soft);color:var(--accent)}
+.pill.nodot::before{display:none}
+
+.toolbar{display:flex;align-items:center;gap:14px;padding:16px 18px;margin-bottom:18px;flex-wrap:wrap}
+.fbtn{width:52px;height:52px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.search{flex:1;min-width:300px;max-width:560px;position:relative}
+.search input{width:100%;height:50px;border:1.5px solid var(--line);border-radius:14px;padding:0 16px 0 46px;background:#fafbfd;outline:none}
+.search input:focus{border-color:var(--accent);background:#fff}
+.search svg{position:absolute;left:16px;top:15px;color:var(--faint)}
+select.sel,input.inp{height:44px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;background:#fff;outline:none}
+select.sel:focus,input.inp:focus{border-color:var(--accent)}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 20px;border-radius:13px;border:1.5px solid var(--line);background:#fff;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#cfd1dd;background:#fcfcfe}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{background:#4c3fe0}
+.btn.danger{background:var(--red-soft);border-color:var(--red-soft);color:var(--red)}
+.btn.danger:hover{background:#fbdcdd}
+.btn.solid-danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn.sm{height:38px;padding:0 14px;font-size:14px;border-radius:11px}
+.btn:disabled{opacity:.5;cursor:default}
+.chk{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.chk input{appearance:none;width:24px;height:24px;border:2px solid #cfd1dc;border-radius:7px;margin:0;display:grid;place-items:center;cursor:pointer;background:#fff;flex:none}
+.chk input:checked{background:var(--accent);border-color:var(--accent)}
+.chk input:checked::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chk input:indeterminate{background:var(--accent);border-color:var(--accent)}
+.chk input:indeterminate::after{content:"";width:10px;height:2.5px;background:#fff}
+
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.tab{height:46px;padding:0 22px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:10px}
+.tab b{font-weight:600;color:var(--muted)}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab.on b{color:#fff}
+
+.folders{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.fchip{display:flex;align-items:center;gap:10px;padding:10px 14px 10px 12px;background:#fff;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;transition:.12s}
+.fchip:hover{border-color:var(--accent-line)}
+.fchip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.fchip .n{font-size:12px;color:var(--muted);background:#f2f2f7;border-radius:99px;padding:2px 8px;font-weight:600}
+.fchip.on .n{background:#fff;color:var(--accent)}
+.fchip .u{font-size:11px;background:var(--accent);color:#fff;border-radius:99px;padding:1px 7px;font-weight:700}
+.fchip.drop{border-color:var(--accent);background:var(--accent-soft);transform:scale(1.06);box-shadow:0 6px 18px rgba(90,76,240,.25)}
+.fchip svg{color:var(--accent)}
+.dragging .fchip{border-style:dashed}
+
+.selrow{display:flex;align-items:center;gap:22px;margin:4px 0 12px;padding-left:26px;flex-wrap:wrap}
+.selrow .muted{font-weight:600;color:var(--muted)}
+.filterchip{display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);font-weight:600;border-radius:99px;padding:5px 6px 5px 14px;font-size:14px}
+.filterchip button{border:0;background:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer;color:var(--accent)}
+
+.list{overflow:hidden}
+.row{display:grid;grid-template-columns:54px 64px minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:16px 22px 16px 26px;border-bottom:1px solid var(--line2);background:#fff}
+.row:last-child{border-bottom:0}
+.row:hover{background:#fbfbfe}
+.row.sel{background:#f7f5ff}
+.row[draggable=true]{cursor:grab}
+.av{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;font-weight:700;font-size:20px;flex:none}
+.t1{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t1 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.t2{color:var(--ink2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t3{color:var(--faint);font-size:13.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unread .t2{font-weight:600}
+.meta{text-align:right;color:var(--muted);font-size:13.5px;line-height:1.6;white-space:nowrap}
+.acts{display:flex;gap:10px}
+.more{padding:18px;text-align:center}
+.empty{padding:70px 20px;text-align:center;color:var(--muted)}
+.empty svg{color:var(--accent-line);margin-bottom:10px}
+.empty h3{color:var(--ink);margin:6px 0}
+
+.bulk{position:fixed;left:calc(300px + 44px);right:44px;bottom:22px;background:#1b1a2e;color:#fff;border-radius:18px;padding:12px 14px 12px 24px;display:flex;align-items:center;gap:12px;box-shadow:0 18px 40px rgba(20,18,50,.35);z-index:20;flex-wrap:wrap}
+.bulk b{font-size:16px;margin-right:auto}
+.bulk .btn{background:#2c2b44;border-color:#2c2b44;color:#fff}
+.bulk .btn:hover{background:#3a3958}
+.bulk .btn.solid-danger{background:var(--red);border-color:var(--red)}
+.bulk .x{background:none;border:0;color:#aaa;font-size:22px;cursor:pointer;padding:0 8px}
+
+/* remitents */
+.srow{display:grid;grid-template-columns:54px 64px minmax(0,1.3fr) minmax(140px,1fr) auto auto;gap:14px;align-items:center;padding:16px 22px 16px 26px;border-bottom:1px solid var(--line2)}
+.srow:hover{background:#fbfbfe}
+.srow.sel{background:#f7f5ff}
+.count{font-size:22px;font-weight:800;color:var(--ink);min-width:54px;text-align:right}
+.bar{height:10px;background:#f0f0f6;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:99px}
+.bar-l{font-size:12.5px;color:var(--muted);margin-top:6px}
+.seg{display:inline-flex;background:#f1f1f7;border-radius:12px;padding:4px}
+.seg button{border:0;background:none;padding:8px 16px;border-radius:9px;font-weight:600;cursor:pointer;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* carpetes */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+.fcard{padding:22px;display:flex;flex-direction:column;gap:14px}
+.fcard .top{display:flex;gap:14px;align-items:center}
+.fcard .fi{width:52px;height:52px;border-radius:15px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.fcard h3{margin:0;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcard .path{font-size:12.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcard .nums{display:flex;gap:22px}
+.fcard .nums div{font-size:13px;color:var(--muted)}
+.fcard .nums b{display:block;font-size:22px;color:var(--ink)}
+.fcard .bt{display:flex;gap:8px;flex-wrap:wrap}
+.fcard.drop{outline:2px dashed var(--accent);outline-offset:3px}
+
+/* info */
+.qbar{height:16px;border-radius:99px;background:#eeeef5;overflow:hidden;margin:18px 0 10px}
+.qbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#22c07a,#10a55a)}
+.qbar i.warn{background:linear-gradient(90deg,#ffb020,#f08a00)} .qbar i.crit{background:linear-gradient(90deg,#ff6b6b,var(--red))}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:10px 18px;font-size:15px}
+.kv span{color:var(--muted)}
+.caps{display:flex;flex-wrap:wrap;gap:6px}
+.caps i{font-style:normal;font-size:12px;background:#f2f2f7;border-radius:7px;padding:3px 8px;color:var(--muted)}
+table.t{width:100%;border-collapse:collapse}
+table.t th{font-size:12px;letter-spacing:.6px;color:var(--faint);text-align:left;padding:12px 22px;border-bottom:1px solid var(--line)}
+table.t td{padding:13px 22px;border-bottom:1px solid var(--line2)}
+table.t td.r,table.t th.r{text-align:right}
+table.t tr:last-child td{border-bottom:0}
+.big-n{font-size:40px;font-weight:800;letter-spacing:-.6px}
+
+/* modals */
+.ov{position:fixed;inset:0;background:rgba(22,20,45,.38);display:grid;place-items:center;z-index:50;padding:20px;animation:f .12s}
+@keyframes f{from{opacity:0}}
+.modal{background:#fff;border-radius:24px;width:min(620px,100%);max-height:calc(100vh - 40px);overflow:auto;box-shadow:0 30px 80px rgba(20,18,50,.3);padding:30px}
+.modal.wide{width:min(780px,100%)}
+.modal h2{margin:0 0 6px;font-size:26px}
+.modal .lead{color:var(--muted);margin:0 0 20px}
+.modal .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;align-items:center}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.fld label{font-size:13px;font-weight:600;color:var(--ink2)}
+.fld input,.fld select{height:46px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;outline:none;background:#fff;width:100%}
+.fld input:focus,.fld select:focus{border-color:var(--accent)}
+.fld small{color:var(--muted);font-size:12.5px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:12px}
+.types{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.type{border:1.5px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;display:flex;gap:14px;align-items:center;background:#fff;text-align:left}
+.type.on{border-color:var(--accent);background:var(--accent-soft)}
+.type .ti{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:#fff;font-weight:800;font-size:20px;color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.type b{display:block}
+.type span{font-size:13px;color:var(--muted)}
+.sect{font-size:12px;font-weight:700;color:var(--faint);letter-spacing:.8px;margin:18px 0 10px}
+.note{background:#f6f5ff;border:1px solid #e3dfff;border-radius:14px;padding:12px 16px;font-size:14px;color:var(--ink2);margin-bottom:14px;line-height:1.5}
+.note.warn{background:var(--amber-soft);border-color:#ffe2b0}
+.note.err{background:var(--red-soft);border-color:#f9cfd1;color:#a5262a}
+.note.ok{background:var(--green-soft);border-color:#bfe9cf;color:#0b6e37}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-height:46vh;overflow:auto;padding:2px}
+.pick button{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:13px;background:#fff;padding:12px 14px;cursor:pointer;text-align:left;font-weight:600}
+.pick button:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.pick button svg{color:var(--accent)}
+.pick button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prog{height:10px;background:#efeff6;border-radius:99px;overflow:hidden;margin:18px 0 8px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));width:0;transition:width .2s}
+.prog.ind i{width:35%;animation:ind 1.1s infinite ease-in-out}
+@keyframes ind{0%{margin-left:-35%}100%{margin-left:100%}}
+.toasts{position:fixed;right:24px;top:24px;display:flex;flex-direction:column;gap:10px;z-index:60}
+.toast{background:#1b1a2e;color:#fff;padding:14px 20px;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.25);max-width:440px;animation:f .2s}
+.toast.err{background:var(--red)}
+.help h3{margin:24px 0 8px} .help ol{line-height:1.8;padding-left:22px;margin:0} .help code{background:#f1f1f7;padding:2px 7px;border-radius:6px}
+.help .card{padding:26px 30px;margin-bottom:20px}
+.welcome{padding:60px;text-align:center}
+.welcome .logo{width:96px;height:96px;border-radius:28px;margin:0 auto 20px}
+a{color:var(--accent)}
+.split{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start}
+.treep{position:sticky;top:0;max-height:calc(100vh - 60px);display:flex;flex-direction:column;overflow:hidden}
+.treeh{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 10px 20px}
+.treeh b{font-size:12px;letter-spacing:.8px;color:var(--faint)}
+.tsearch{margin:0 12px 8px;position:relative}
+.tsearch input{width:100%;height:40px;border:1.5px solid var(--line);border-radius:11px;padding:0 12px 0 36px;background:#fafbfd;outline:none;font-size:14px}
+.tsearch input:focus{border-color:var(--accent);background:#fff}
+.tsearch svg{position:absolute;left:11px;top:11px;color:var(--faint)}
+.tree{overflow:auto;padding:2px 8px 12px;min-height:60px}
+.tn{display:flex;align-items:center;gap:8px;height:40px;border-radius:10px;cursor:pointer;padding-right:10px;white-space:nowrap;font-size:14.5px;user-select:none}
+.tn:hover{background:#f5f5fb}
+.tn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tn.drop{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+.tn.virt{color:var(--muted);cursor:default}
+.tn > svg{color:var(--accent)}
+.tn.virt > svg{color:var(--faint)}
+.tw{width:24px;height:24px;border:0;background:none;display:grid;place-items:center;color:var(--faint);cursor:pointer;border-radius:6px;flex:none;padding:0}
+.tw:hover{background:#ebebf3;color:var(--ink)}
+.tw svg{transition:transform .15s}
+.tw.open svg{transform:rotate(90deg)}
+.tsp{width:24px;flex:none}
+.tn .lb{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.tn .n{font-size:12px;color:var(--muted);font-weight:600}
+.tn.on .n{color:var(--accent)}
+.tn .u{font-size:11px;background:var(--accent);color:#fff;border-radius:99px;padding:1px 7px;font-weight:700}
+.tn .u.soft{background:#e4e1ff;color:var(--accent)}
+.pick-tree{max-height:48vh;overflow:auto;border:1.5px solid var(--line);border-radius:14px;padding:6px}
+.mhead,.mrow{display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 100px 210px;align-items:center;gap:10px;padding:0 18px}
+.mhead{height:44px;font-size:12px;letter-spacing:.6px;color:var(--faint);font-weight:700;border-bottom:1px solid var(--line)}
+.mrow{min-height:56px;border-bottom:1px solid var(--line2)}
+.mrow:last-child{border-bottom:0}
+.mrow:hover{background:#fbfbfe}
+.mrow .r,.mhead .r{text-align:right}
+.mrow .nm{display:flex;align-items:center;gap:8px;min-width:0}
+.mrow .nm > svg{color:var(--accent)}
+.mrow .nm b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .nm .path{font-size:12px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .r{color:var(--muted);font-variant-numeric:tabular-nums}
+.mrow .r.strong{color:var(--ink);font-weight:600}
+.ib{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:#fff;display:inline-grid;place-items:center;cursor:pointer;color:var(--ink2)}
+.ib:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.ib.red{color:var(--red)} .ib.red:hover{border-color:var(--red);background:var(--red-soft);color:var(--red)}
+.ib.ghost{visibility:hidden}
+.macts{display:flex;gap:6px;justify-content:flex-end}
+.split .toolbar{gap:10px}
+.split .search{min-width:200px}
+.split select.sel{max-width:170px}
+@media (max-width:1200px){.cards2{grid-template-columns:1fr}.app{grid-template-columns:240px 1fr}.bulk{left:270px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><div class="logo" id="logo"></div><b>GESTOR DE<br>CORREUS</b></div>
+    <div class="navlabel">COMPTE</div>
+    <div id="nav1"></div>
+    <div class="navlabel" style="margin-top:22px">CONFIGURACIÓ</div>
+    <div id="nav2"></div>
+    <div class="navlabel" style="margin-top:22px">AJUDA</div>
+    <div id="nav3"></div>
+    <div class="side-foot" id="sidefoot"></div>
+  </aside>
+  <main id="main"></main>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------------------------------------------------------------- icons */
+const P = {
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/>',
+  folder:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/>',
+  inbox:'<path d="M3 13h5l1.5 2.5h5L16 13h5"/><path d="M5.5 5h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z"/>',
+  send:'<path d="M21 3 10 14"/><path d="m21 3-7 18-4-7-7-4z"/>',
+  draft:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+  trash:'<path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>',
+  spam:'<path d="M12 3 21 19H3z"/><path d="M12 10v4M12 16.5v.5"/>',
+  star:'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  archive:'<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.2A6.5 6.5 0 0 1 21.5 20"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5v.5"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17v.5"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+  filter:'<path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/>',
+  refresh:'<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>',
+  move:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M10 13.5h6M13.5 11l2.5 2.5-2.5 2.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  server:'<rect x="3.5" y="4" width="17" height="7" rx="2"/><rect x="3.5" y="13" width="17" height="7" rx="2"/><path d="M7.5 7.5h.01M7.5 16.5h.01"/>',
+  disk:'<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  plug:'<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
+  read:'<path d="M3 9.5 12 4l9 5.5V19a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19z"/><path d="m3 10 9 6 9-6"/>',
+  chev:'<path d="m9 6 6 6-6 6"/>',
+  sub:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M12 10.5v6M9 13.5h6"/>',
+  infinity:'<path d="M7 8.5a3.5 3.5 0 1 0 0 7c3 0 7-7 10-7a3.5 3.5 0 1 1 0 7c-3 0-7-7-10-7z"/>',
+};
+const ic = (n, s=22, w=1.8) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||P.folder}</svg>`;
+const SPECIAL_IC = {inbox:"inbox", sent:"send", drafts:"draft", trash:"trash", spam:"spam", flagged:"star", important:"star", archive:"archive", all:"archive"};
+const SPECIAL_TXT = {inbox:"Entrada", sent:"Enviats", drafts:"Esborranys", trash:"Paperera", spam:"Correu brossa", all:"Tots", flagged:"Destacats", important:"Importants", archive:"Arxiu"};
+
+/* ---------------------------------------------------------------- state */
+const S = {
+  accounts: [], cur: localStorage.getItem("gc.cur") || null, page: "correus",
+  folders: {}, folder: {}, cache: {}, sel: new Set(),
+  q: "", field: "sender", tab: "all", sort: "new", limit: 200, senderFilter: null,
+  fq: "", mq: "", sq: "", sgroup: "email", smin: 1, ssel: new Set(), info: {},
+};
+const acc = () => S.accounts.find(a => a.id === S.cur);
+const curFolder = () => S.folder[S.cur] || "INBOX";
+const ckey = (f = curFolder()) => S.cur + "|" + f;
+
+/* ---------------------------------------------------------------- api */
+async function call(action, payload = {}) {
+  let r;
+  try {
+    r = await fetch("/api/" + action, {method: "POST", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify(payload)});
+  } catch (e) { throw new Error("No hi ha connexió amb el programa. Torna'l a obrir."); }
+  const j = await r.json();
+  if (j.need_password) { const e = new Error(j.error); e.needPassword = true; throw e; }
+  if (!j.ok) throw new Error(j.error || "Error");
+  return j;
+}
+async function acall(action, payload = {}) {           // amb petició de contrasenya si cal
+  try { return await call(action, payload); }
+  catch (e) {
+    if (!e.needPassword) throw e;
+    const ok = await askPassword(payload.id || S.cur);
+    if (!ok) throw new Error("Cal la contrasenya per continuar.");
+    return await call(action, payload);
+  }
+}
+async function runJob(action, payload, label) {
+  const start = await acall(action, payload);
+  const ov = progressBox(label);
+  try {
+    while (true) {
+      await new Promise(r => setTimeout(r, 250));
+      const j = await call("job", {job: start.job});
+      ov.update(j.done, j.total);
+      if (j.status === "done") return j.result;
+      if (j.status === "error") throw new Error(j.error);
+    }
+  } finally { ov.close(); }
+}
+
+/* ---------------------------------------------------------------- utils */
+const fmtSize = b => b == null ? "—" : b < 1024 ? b + " B" : b < 1048576 ? (b/1024).toFixed(0) + " KB" : b < 1073741824 ? (b/1048576).toFixed(1).replace(".", ",") + " MB" : (b/1073741824).toFixed(2).replace(".", ",") + " GB";
+const fmtN = n => (n ?? 0).toLocaleString("ca-ES");
+const nC = n => `${fmtN(n)} correu${n === 1 ? "" : "s"}`;
+function fmtDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts * 1000), now = new Date();
+  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString("ca-ES", {hour: "2-digit", minute: "2-digit"});
+  if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString("ca-ES", {day: "numeric", month: "short"});
+  return d.toLocaleDateString("ca-ES");
+}
+const COLORS = [["#efedff","#5a4cf0"],["#e5f7ec","#109a4d"],["#fff1e3","#c46a00"],["#e6f2ff","#1f6fd1"],["#fdeaf3","#c22f78"],["#e8f8f8","#0f8a8a"],["#f3ecff","#8a3fd6"]];
+function avatar(seed, letter) {
+  let h = 0; for (const c of String(seed)) h = (h * 31 + c.charCodeAt(0)) | 0;
+  const [bg, fg] = COLORS[Math.abs(h) % COLORS.length];
+  return `<div class="av" style="background:${bg};color:${fg}">${esc((letter || "?").toUpperCase())}</div>`;
+}
+function fname(f) {
+  if (!f) return "";
+  if (f.special === "inbox") return "Safata d'entrada";
+  const d = f.delim || "/";
+  let parts = f.name.split(d);
+  if (/^\[(Gmail|Google Mail)\]$/i.test(parts[0]) && parts.length > 1) parts = parts.slice(1);
+  return parts.join(" › ");
+}
+const folderObj = name => (S.folders[S.cur] || []).find(f => f.name === name);
+const fIcon = f => ic(SPECIAL_IC[f?.special] || "folder", 20);
+/* ------------------------------------------------------------- arbre */
+const OPEN = new Set((() => { try { return JSON.parse(localStorage.getItem("gc.open") || "[]"); } catch (e) { return []; } })());
+const saveOpen = () => { try { localStorage.setItem("gc.open", JSON.stringify([...OPEN])); } catch (e) {} };
+const RANK = {inbox: 0, flagged: 1, important: 1, sent: 2, drafts: 3, archive: 4, all: 4, "": 5, spam: 8, trash: 9};
+const GMAIL_ROOT = /^\[(Gmail|Google Mail)\]$/i;
+function dispParts(f) {
+  let p = f.delim ? f.name.split(f.delim) : [f.name];
+  if (p.length > 1 && GMAIL_ROOT.test(p[0])) p = p.slice(1);
+  else if (p.length === 1 && GMAIL_ROOT.test(p[0])) return null;    // contenidor [Gmail]
+  return p;
+}
+function buildTree(folders = S.folders[S.cur] || []) {
+  const root = {children: []}, map = new Map();
+  const ensure = parts => {
+    const key = S.cur + "\u0001" + parts.join("\u0001");
+    let n = map.get(key);
+    if (n) return n;
+    n = {key, label: parts[parts.length - 1], children: [], folder: null};
+    map.set(key, n);
+    (parts.length > 1 ? ensure(parts.slice(0, -1)) : root).children.push(n);
+    return n;
+  };
+  for (const f of folders) {
+    const p = dispParts(f); if (!p) continue;
+    const n = ensure(p); n.folder = f;
+    if (f.special === "inbox" && p.length === 1) n.label = "Safata d'entrada";
+  }
+  const sum = n => { n.tot = (n.folder?.messages || 0); n.totU = (n.folder?.unseen || 0);
+    n.children.forEach(c => { sum(c); n.tot += c.tot; n.totU += c.totU; }); };
+  const sort = n => { n.children.sort((a, b) => (RANK[a.folder?.special || ""] ?? 5) - (RANK[b.folder?.special || ""] ?? 5) || a.label.localeCompare(b.label, "ca")); n.children.forEach(sort); };
+  root.children.forEach(sum); sort(root);
+  return {root, map};
+}
+function treeNodeOf(name) {
+  const f = folderObj(name); if (!f) return null;
+  const p = dispParts(f); return p ? S.cur + "\u0001" + p.join("\u0001") : null;
+}
+function openPathTo(name) {
+  const k = treeNodeOf(name); if (!k) return;
+  const parts = k.split("\u0001");
+  for (let i = 2; i < parts.length; i++) OPEN.add(parts.slice(0, i).join("\u0001"));
+  saveOpen();
+}
+function flatTree(root, q = "", all = false) {
+  const out = []; q = q.trim().toLowerCase();
+  const hit = n => n.label.toLowerCase().includes(q) || (n.folder && n.folder.name.toLowerCase().includes(q));
+  const has = n => hit(n) || n.children.some(has);
+  const walk = (n, depth) => {
+    for (const c of n.children) {
+      if (q && !has(c)) continue;
+      const open = all || !!q || OPEN.has(c.key);
+      out.push({n: c, depth, open});
+      if (c.children.length && open) walk(c, depth + 1);
+    }
+  };
+  walk(root, 0);
+  return out;
+}
+function treeOptions(selected, {root = true, selectableOnly = false} = {}) {
+  const rows = flatTree(buildTree().root, "", true);
+  return (root ? `<option value="">(arrel)</option>` : "") + rows.filter(r => r.n.folder && (!selectableOnly || r.n.folder.selectable))
+    .map(r => `<option value="${esc(r.n.folder.name)}" ${r.n.folder.name === selected ? "selected" : ""}>${"    ".repeat(r.depth)}${esc(r.n.label)}</option>`).join("");
+}
+/* arbre navegable: mode "nav" (barra lateral) o "pick" (triar destinació) */
+function drawTree(el, {q = "", selected = null, exclude = null, onPick, drop = false}) {
+  const rows = flatTree(buildTree().root, q);
+  if (!rows.length) { el.innerHTML = `<div style="padding:14px;color:var(--muted);font-size:14px">Cap carpeta coincideix.</div>`; return; }
+  el.innerHTML = rows.map(({n, depth, open}, i) => {
+    const f = n.folder, usable = f && f.selectable && f.name !== exclude;
+    const kids = n.children.length;
+    const cnt = f && f.messages != null ? (kids && !open ? n.tot : f.messages) : (kids && !open ? n.tot : null);
+    const un = kids && !open ? n.totU : (f?.unseen || 0);
+    return `<div class="tn ${f && f.name === selected ? "on" : ""} ${usable ? "" : "virt"}" data-i="${i}" style="padding-left:${4 + depth * 18}px" title="${esc(f ? f.name : n.label)}">
+      ${kids ? `<button class="tw ${open ? "open" : ""}" data-tw>${ic("chev", 15, 2.2)}</button>` : `<span class="tsp"></span>`}
+      ${f ? fIcon(f) : ic("folder", 20)}<span class="lb">${esc(n.label)}</span>
+      ${un ? `<span class="u ${kids && !open ? "soft" : ""}">${fmtN(un)}</span>` : ""}${cnt != null ? `<span class="n">${fmtN(cnt)}</span>` : ""}</div>`;
+  }).join("");
+  const opts = arguments[1];
+  const toggle = n => { OPEN.has(n.key) ? OPEN.delete(n.key) : OPEN.add(n.key); saveOpen(); drawTree(el, opts); };
+  el.onclick = e => {
+    const row = e.target.closest(".tn"); if (!row) return;
+    const {n} = rows[+row.dataset.i];
+    if (e.target.closest("[data-tw]")) return toggle(n);
+    if (n.folder && n.folder.selectable && n.folder.name !== exclude) onPick(n.folder.name);
+    else if (n.children.length) toggle(n);
+  };
+  if (!drop) return;
+  let timer;
+  el.ondragover = e => {
+    const row = e.target.closest(".tn"); if (!row) return;
+    const {n, open} = rows[+row.dataset.i];
+    const ok = n.folder && n.folder.selectable && n.folder.name !== exclude;
+    if (ok) e.preventDefault();
+    if (!row.classList.contains("drop")) {
+      $$(".tn.drop", el).forEach(x => x.classList.remove("drop"));
+      if (ok) row.classList.add("drop");
+      clearTimeout(timer);
+      if (n.children.length && !open) timer = setTimeout(() => { OPEN.add(n.key); saveOpen(); drawTree(el, opts); }, 700);
+    }
+  };
+  el.ondragleave = e => { if (!el.contains(e.relatedTarget)) { $$(".tn.drop", el).forEach(x => x.classList.remove("drop")); clearTimeout(timer); } };
+  el.ondrop = e => {
+    e.preventDefault(); clearTimeout(timer);
+    const row = e.target.closest(".tn"); $$(".tn.drop", el).forEach(x => x.classList.remove("drop"));
+    if (!row) return;
+    const {n} = rows[+row.dataset.i];
+    if (n.folder && n.folder.selectable && n.folder.name !== exclude) { const u = S.drag || []; S.drag = null; doMove(u, n.folder.name); }
+  };
+}
+const domainOf = e => (e.split("@")[1] || e);
+function toast(msg, err) {
+  const t = document.createElement("div"); t.className = "toast" + (err ? " err" : ""); t.textContent = msg;
+  $("#toasts").appendChild(t); setTimeout(() => t.remove(), err ? 7000 : 3800);
+}
+
+/* ---------------------------------------------------------------- modals */
+function modal(html, cls = "") {
+  const ov = document.createElement("div"); ov.className = "ov";
+  ov.innerHTML = `<div class="modal ${cls}">${html}</div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener("mousedown", e => { if (e.target === ov && !ov.dataset.lock) ov.close?.(null); });
+  return ov;
+}
+function closeTop() { const o = $$(".ov").pop(); if (o && !o.dataset.lock) o.close ? o.close(null) : o.remove(); }
+function confirmBox({title, body, ok = "D'acord", danger = false, check = null}) {
+  return new Promise(res => {
+    const ov = modal(`<h2>${title}</h2><div class="lead">${body}</div>
+      ${check ? `<label class="chk"><input type="checkbox" id="cbx" ${check.value ? "checked" : ""}> ${check.label}</label>` : ""}
+      <div class="foot"><button class="btn" data-x>Cancel·la</button><button class="btn ${danger ? "solid-danger" : "pri"}" data-ok>${ok}</button></div>`);
+    ov.close = v => { ov.remove(); res(v); };
+    $("[data-x]", ov).onclick = () => ov.close(false);
+    $("[data-ok]", ov).onclick = () => ov.close({checked: check ? $("#cbx", ov).checked : false});
+    $("[data-ok]", ov).focus();
+  });
+}
+function promptBox({title, lead = "", label, value = "", ok = "Desa", extra = ""}) {
+  return new Promise(res => {
+    const ov = modal(`<h2>${title}</h2>${lead ? `<p class="lead">${lead}</p>` : ""}
+      <div class="fld"><label>${label}</label><input id="pv" value="${esc(value)}"></div>${extra}
+      <div class="foot"><button class="btn" data-x>Cancel·la</button><button class="btn pri" data-ok>${ok}</button></div>`);
+    ov.close = v => { ov.remove(); res(v); };
+    const inp = $("#pv", ov); inp.focus(); inp.select();
+    const go = () => ov.close({value: inp.value, ov});
+    $("[data-x]", ov).onclick = () => ov.close(null);
+    $("[data-ok]", ov).onclick = go;
+    inp.onkeydown = e => { if (e.key === "Enter") go(); };
+  });
+}
+function progressBox(label) {
+  const ov = modal(`<h2 style="font-size:22px">${esc(label)}</h2><div class="prog ind"><i></i></div><div class="lead" id="pl" style="margin:0">Connectant amb el servidor…</div>`);
+  ov.dataset.lock = 1;
+  return {
+    update(d, t) {
+      if (!t) return;
+      $(".prog", ov).classList.remove("ind");
+      $(".prog i", ov).style.width = Math.round(d / t * 100) + "%";
+      $("#pl", ov).textContent = `${fmtN(d)} de ${fmtN(t)}`;
+    },
+    close() { ov.remove(); }
+  };
+}
+function askPassword(id) {
+  const a = S.accounts.find(x => x.id === id);
+  return new Promise(res => {
+    const ov = modal(`<h2>Contrasenya</h2><p class="lead">Escriu la contrasenya de <b>${esc(a?.email)}</b> per obrir-ne la safata.</p>
+      <div class="fld"><label>Contrasenya</label><input type="password" id="pw" autocomplete="current-password"></div>
+      <label class="chk"><input type="checkbox" id="rem"> Recorda-la en aquest ordinador</label>
+      <div class="note err" id="pe" style="display:none;margin-top:14px"></div>
+      <div class="foot"><button class="btn" data-x>Cancel·la</button><button class="btn pri" data-ok>${ic("plug",18)} Connecta</button></div>`);
+    ov.close = v => { ov.remove(); res(v); };
+    const pw = $("#pw", ov); pw.focus();
+    const go = async () => {
+      if (!pw.value) return;
+      const b = $("[data-ok]", ov); b.disabled = true; b.textContent = "Connectant…";
+      try {
+        const r = await call("connect", {id, password: pw.value, remember: $("#rem", ov).checked});
+        S.folders[id] = r.folders; await loadState();
+        ov.close(true);
+      } catch (e) {
+        $("#pe", ov).style.display = "block"; $("#pe", ov).textContent = e.message;
+        b.disabled = false; b.innerHTML = ic("plug",18) + " Connecta";
+      }
+    };
+    $("[data-x]", ov).onclick = () => ov.close(false);
+    $("[data-ok]", ov).onclick = go;
+    pw.onkeydown = e => { if (e.key === "Enter") go(); };
+  });
+}
+function pickFolder({title, exclude}) {
+  return new Promise(res => {
+    const ov = modal(`<h2>${title}</h2><p class="lead">Tria la carpeta de destinació.</p>
+      <div class="tsearch" style="margin:0 0 10px">${ic("search", 18)}<input id="pq" placeholder="Cerca una carpeta…"></div>
+      <div class="pick-tree" id="ptree"></div>
+      <div class="sect">O CREA'N UNA DE NOVA</div>
+      <div style="display:flex;gap:10px"><input class="inp" id="nf" placeholder="Nom de la carpeta nova" style="flex:1"><select class="sel" id="nfp" style="max-width:220px">${treeOptions(null)}</select><button class="btn" id="nfb">${ic("plus",18)} Crea i mou</button></div>
+      <div class="foot"><button class="btn" data-x>Cancel·la</button></div>`, "wide");
+    ov.close = v => { ov.remove(); res(v); };
+    $("[data-x]", ov).onclick = () => ov.close(null);
+    const draw = () => drawTree($("#ptree", ov), {q: $("#pq", ov).value, exclude, onPick: n => ov.close(n)});
+    $("#pq", ov).oninput = draw; draw(); setTimeout(() => $("#pq", ov).focus(), 30);
+    $("#nfb", ov).onclick = async () => {
+      const n = $("#nf", ov).value.trim(); if (!n) return;
+      try { const r = await acall("folder_create", {id: S.cur, name: n, parent: $("#nfp", ov).value}); S.folders[S.cur] = r.folders; ov.close(r.name); }
+      catch (e) { toast(e.message, 1); }
+    };
+  });
+}
+
+/* ---------------------------------------------------------------- data */
+async function loadState() {
+  const r = await call("state");
+  S.accounts = r.accounts; S.configPath = r.config;
+  if (!acc() && S.accounts.length) S.cur = S.accounts[0].id;
+  if (!S.accounts.length) S.cur = null;
+}
+async function ensureConnected() {
+  const a = acc(); if (!a) return false;
+  if (S.folders[a.id]) return true;
+  const r = await acall("connect", {id: a.id});
+  S.folders[a.id] = r.folders; await loadState();
+  return true;
+}
+async function refreshFolders() {
+  try { const r = await acall("folders", {id: S.cur}); S.folders[S.cur] = r.folders; } catch (e) { toast(e.message, 1); }
+}
+async function loadMessages(folder = curFolder(), force = false) {
+  const k = ckey(folder);
+  if (S.cache[k] && !force) return S.cache[k];
+  const fo = folderObj(folder);
+  const r = await runJob("messages", {id: S.cur, folder}, `Llegint «${fname(fo) || folder}»`);
+  S.cache[k] = r;
+  return r;
+}
+function removeLocal(folder, uids) {
+  const c = S.cache[ckey(folder)]; if (!c) return;
+  const set = new Set(uids);
+  c.messages = c.messages.filter(m => !set.has(m.uid));
+  uids.forEach(u => S.sel.delete(u));
+}
+
+/* -------------------------------------------------------- operacions */
+async function doDelete(uids, folder = curFolder(), what = "") {
+  if (!uids.length) return;
+  const a = acc(), fo = folderObj(folder);
+  const trash = (S.folders[S.cur] || []).find(f => f.special === "trash");
+  const inTrash = fo?.special === "trash";
+  const canTrash = trash && !inTrash;
+  const defPerm = a.delete_mode === "permanent" || !canTrash;
+  let body = `S'eliminaran <b>${nC(uids.length)}</b>${what} de <b>${esc(fname(fo) || folder)}</b> directament al servidor.`;
+  if (!canTrash) body += `<div class="note warn" style="margin-top:14px">${inTrash ? "Ja són a la paperera: s'esborraran definitivament." : "No s'ha trobat cap carpeta Paperera: s'esborraran definitivament."}</div>`;
+  if (a.type === "gmail" && canTrash) body += `<div class="note" style="margin-top:14px">A Gmail van a la Paperera i Google els esborra sols al cap de 30 dies. Pots buidar-la des de «Carpetes».</div>`;
+  const r = await confirmBox({title: `Eliminar ${nC(uids.length)}?`, body, ok: `${ic("trash",18)} Elimina`, danger: true,
+    check: canTrash && a.type !== "gmail" ? {label: "Esborra definitivament (sense passar per la paperera)", value: defPerm} : null});
+  if (!r) return;
+  try {
+    const cc = S.cache[ckey(folder)];
+    const res = await runJob("delete", {id: S.cur, folder, uids, uidvalidity: cc?.uidvalidity, permanent: canTrash ? r.checked : true},
+      `Eliminant ${nC(uids.length)}`);
+    removeLocal(folder, uids);
+    if (res.trash) delete S.cache[ckey(res.trash)];
+    toast(res.trash ? `${nC(res.count)} ${res.count === 1 ? "mogut" : "moguts"} a la paperera` : `${nC(res.count)} ${res.count === 1 ? "esborrat" : "esborrats"} definitivament`);
+  } catch (e) { toast(e.message, 1); }
+  await refreshFolders(); render();
+}
+async function doMove(uids, dest, folder = curFolder()) {
+  if (!uids.length) return;
+  if (!dest) dest = await pickFolder({title: `Moure ${nC(uids.length)}`, exclude: folder});
+  if (!dest || dest === folder) return;
+  try {
+    const cc = S.cache[ckey(folder)];
+    const res = await runJob("move", {id: S.cur, folder, uids, dest, uidvalidity: cc?.uidvalidity}, `Movent ${nC(uids.length)}`);
+    removeLocal(folder, uids); delete S.cache[ckey(dest)];
+    toast(`${nC(res.count)} ${res.count === 1 ? "mogut" : "moguts"} a «${fname(folderObj(dest)) || dest}»`);
+  } catch (e) { toast(e.message, 1); }
+  await refreshFolders(); render();
+}
+async function doSeen(uids, folder = curFolder()) {
+  try {
+    const cc = S.cache[ckey(folder)];
+    await acall("seen", {id: S.cur, folder, uids, seen: true, uidvalidity: cc?.uidvalidity});
+    const set = new Set(uids); cc?.messages.forEach(m => { if (set.has(m.uid)) m.seen = true; });
+    toast(`${fmtN(uids.length)} marcats com a llegits`);
+  } catch (e) { toast(e.message, 1); }
+  await refreshFolders(); render();
+}
+
+/* ---------------------------------------------------------------- shell */
+const NAV1 = [["correus","mail","Correus"],["carpetes","folder","Carpetes"],["remitents","users","Remitents"],["informacio","info","Informació"]];
+const NAV2 = [["comptes","settings","Comptes"]];
+const NAV3 = [["ajuda","help","Com connectar-lo"]];
+function renderShell() {
+  $("#logo").innerHTML = ic("mail", 30, 1.9);
+  const nav = list => list.map(([k, i, t]) => `<button class="nav ${S.page === k ? "on" : ""}" data-p="${k}">${ic(i, 22)} ${t}${k === "comptes" ? `<span class="cnt">${S.accounts.length}</span>` : ""}</button>`).join("");
+  $("#nav1").innerHTML = nav(NAV1); $("#nav2").innerHTML = nav(NAV2); $("#nav3").innerHTML = nav(NAV3);
+  $$(".nav").forEach(b => b.onclick = () => go(b.dataset.p));
+  const a = acc();
+  $("#sidefoot").innerHTML = a ? `<div class="logo av" style="width:46px;height:46px;border-radius:50%">${a.type === "gmail" ? "<b>G</b>" : ic("server", 22)}</div>
+     <div class="who"><b>${esc(a.label)}</b><span>${a.type === "gmail" ? "Gmail" : "Roundcube"} · ${a.connected ? "connectat" : "desconnectat"}</span></div>
+     <span style="width:11px;height:11px;border-radius:50%;background:${a.connected ? "#1fbf66" : "#c6c8d4"}"></span>`
+    : `<div class="who"><b>Cap compte</b><span>Afegeix-ne un per començar</span></div>`;
+}
+function accBar() {
+  return `<div class="toplabel">COMPTES DE CORREU</div><div class="accbar">${S.accounts.map(a => `
+    <button class="acc ${a.id === S.cur ? "on" : ""}" data-acc="${a.id}">
+      <div class="ic">${a.type === "gmail" ? "G" : ic("server", 20)}<i class="${a.connected ? "ok" : ""}"></i></div>
+      <div><b>${esc(a.label)}</b><span>${a.connected ? "Connectat" : "Desconnectat"} · ${esc(a.email)}</span></div>
+    </button>`).join("")}
+    <button class="acc add" id="addacc">${ic("plus", 18)} Afegeix compte</button></div>`;
+}
+function bindAccBar() {
+  $$("[data-acc]").forEach(b => b.onclick = () => switchAccount(b.dataset.acc));
+  $("#addacc") && ($("#addacc").onclick = () => accountForm());
+}
+async function switchAccount(id) {
+  if (S.cur !== id) { S.cur = id; localStorage.setItem("gc.cur", id); S.sel.clear(); S.ssel.clear(); S.senderFilter = null; S.q = ""; S.limit = 200; }
+  render();
+}
+function go(p) { S.page = p; render(); $("#main").scrollTop = 0; }
+
+async function render() {
+  renderShell();
+  const m = $("#main");
+  $(".bulk")?.remove();
+  if (!S.accounts.length && S.page !== "ajuda") return renderWelcome(m);
+  const pages = {correus: pageCorreus, carpetes: pageCarpetes, remitents: pageRemitents, informacio: pageInfo, comptes: pageComptes, ajuda: pageAjuda};
+  await (pages[S.page] || pageCorreus)(m);
+}
+
+function renderWelcome(m) {
+  m.innerHTML = `<div class="card welcome" style="margin-top:60px"><div class="logo">${ic("mail", 46, 1.8)}</div>
+    <h1 style="font-size:36px">Benvingut al Gestor de Correus</h1>
+    <p class="sub" style="max-width:620px;margin:10px auto 28px">Per començar, afegeix un compte de correu. Pot ser d'un servidor amb Roundcube (IMAP/SMTP) o de Gmail. En pots afegir tants com vulguis.</p>
+    <button class="btn pri" id="w1" style="height:54px;padding:0 30px;font-size:16px">${ic("plus", 20)} Afegeix el primer compte</button>
+    <p style="margin-top:22px"><a href="#" id="w2">Com connectar-lo?</a></p></div>`;
+  $("#w1").onclick = () => accountForm();
+  $("#w2").onclick = e => { e.preventDefault(); go("ajuda"); };
+}
+
+/* needs connection: shows connect card if not */
+async function connectGate(m, title, sub) {
+  const a = acc();
+  if (S.folders[a.id]) return true;
+  m.innerHTML = accBar() + `<h1>${title}</h1><p class="sub">${sub}</p><div class="card empty">${ic("plug", 54, 1.4)}<h3>Connectant amb ${esc(a.email)}…</h3><p>${esc(a.imap_host)}</p></div>`;
+  bindAccBar();
+  try { await ensureConnected(); renderShell(); return true; }
+  catch (e) {
+    m.innerHTML = accBar() + `<h1>${title}</h1><p class="sub">${sub}</p><div class="card empty">${ic("plug", 54, 1.4)}
+      <h3>No s'ha pogut connectar</h3><p>${esc(e.message)}</p>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:18px"><button class="btn pri" id="rc">${ic("refresh", 18)} Torna-ho a provar</button><button class="btn" id="ed">${ic("edit", 18)} Revisa el compte</button></div></div>`;
+    bindAccBar();
+    $("#rc").onclick = () => render(); $("#ed").onclick = () => accountForm(acc());
+    return false;
+  }
+}
+
+/* ============================================================ CORREUS */
+function filtered(c) {
+  let ms = c.messages;
+  const q = S.q.trim().toLowerCase();
+  if (S.senderFilter) {
+    const {kind, value} = S.senderFilter;
+    ms = ms.filter(m => kind === "domain" ? domainOf(m.from_email) === value : m.from_email === value);
+  }
+  if (q) {
+    const words = q.split(/\s+/);
+    ms = ms.filter(m => {
+      const hay = (S.field === "sender" ? m.from_name + " " + m.from_email : S.field === "subject" ? m.subject : m.from_name + " " + m.from_email + " " + m.subject).toLowerCase();
+      return words.every(w => hay.includes(w));
+    });
+  }
+  if (S.tab === "unread") ms = ms.filter(m => !m.seen);
+  else if (S.tab === "read") ms = ms.filter(m => m.seen);
+  else if (S.tab === "selected") ms = ms.filter(m => S.sel.has(m.uid));
+  if (S.sort !== "new") {
+    ms = [...ms];
+    if (S.sort === "old") ms.sort((a, b) => a.ts - b.ts);
+    else if (S.sort === "size") ms.sort((a, b) => b.size - a.size);
+    else if (S.sort === "sender") ms.sort((a, b) => a.from_name.localeCompare(b.from_name, "ca") || b.ts - a.ts);
+  }
+  return ms;
+}
+
+async function pageCorreus(m) {
+  if (!await connectGate(m, "Correus", "")) return;
+  const a = acc(), folders = S.folders[a.id];
+  if (!folderObj(curFolder())) S.folder[a.id] = (folders.find(f => f.special === "inbox") || folders.find(f => f.selectable) || {}).name;
+  const fo = folderObj(curFolder());
+  let c = S.cache[ckey()];
+  m.innerHTML = accBar() + `
+    <h1>Correus</h1>
+    <p class="sub">Cerca per remitent, selecciona i elimina o mou els correus. Els canvis s'apliquen directament al servidor. Pots arrossegar correus a una carpeta.</p>
+    <div class="cards2">
+      <div class="card hero"><div class="big">${a.type === "gmail" ? '<b style="font-size:42px">G</b>' : ic("server", 44, 1.6)}</div>
+        <div style="min-width:0"><h2>${esc(a.label)}</h2><p>${a.type === "gmail" ? "Gmail" : "Roundcube · " + esc(a.imap_host)} · ${esc(a.email)}</p><span class="pill">Connectat</span></div></div>
+      <div class="card hero"><div class="big v">${ic(SPECIAL_IC[fo?.special] || "folder", 44, 1.6)}</div>
+        <div><h2 id="hcount">${c ? fmtN(c.messages.length) + " correus" : "…"}</h2><p>a ${esc(fname(fo))}</p><span class="pill vio" id="hunread">${c ? fmtN(c.messages.filter(x => !x.seen).length) : "…"} no llegits</span></div></div>
+    </div>
+    <div class="split">
+    <div class="card treep"><div class="treeh"><b>CARPETES</b><button class="btn sm" id="newf">${ic("plus", 16)} Nova</button></div>
+      <div class="tsearch">${ic("search", 17)}<input id="fq" placeholder="Cerca carpeta…" value="${esc(S.fq)}"></div>
+      <div class="tree" id="tree"></div></div>
+    <div style="min-width:0">
+    <div class="card toolbar">
+      <div class="fbtn">${ic("filter", 24)}</div>
+      <div class="search">${ic("search", 20)}<input id="q" placeholder="Cerca per nom o correu del remitent…" value="${esc(S.q)}"></div>
+      <select class="sel" id="field"><option value="sender">Remitent</option><option value="subject">Assumpte</option><option value="all">Remitent i assumpte</option></select>
+      <select class="sel" id="sort"><option value="new">Més recents</option><option value="old">Més antics</option><option value="size">Més grans</option><option value="sender">Per remitent</option></select>
+      <span class="spacer"></span>
+      <button class="btn" id="refresh" title="Torna a llegir els correus del servidor">${ic("refresh", 20)} Actualitza</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="selrow" id="selrow"></div>
+    <div class="card list" id="list"><div class="empty">Carregant…</div></div>
+    </div></div>`;
+  bindAccBar();
+  $("#field").value = S.field; $("#sort").value = S.sort;
+  openPathTo(curFolder());
+  renderNavTree();
+  $("#fq").oninput = e => { S.fq = e.target.value; renderNavTree(); };
+  $("#newf").onclick = () => newFolderDialog();
+  let t;
+  $("#q").oninput = e => { clearTimeout(t); t = setTimeout(() => { S.q = e.target.value; S.limit = 200; renderList(); }, 120); };
+  $("#field").onchange = e => { S.field = e.target.value; renderList(); };
+  $("#sort").onchange = e => { S.sort = e.target.value; renderList(); };
+  $("#refresh").onclick = async () => { try { await loadMessages(curFolder(), true); await refreshFolders(); S.sel.clear(); render(); } catch (e) { toast(e.message, 1); } };
+  if (!c) {
+    try { c = await loadMessages(); } catch (e) { $("#list").innerHTML = `<div class="empty"><h3>No s'han pogut llegir els correus</h3><p>${esc(e.message)}</p></div>`; return; }
+    if (S.page !== "correus") return;
+    $("#hcount").textContent = fmtN(c.messages.length) + " correus";
+    $("#hunread").textContent = fmtN(c.messages.filter(x => !x.seen).length) + " no llegits";
+  }
+  renderList();
+}
+
+function renderNavTree() {
+  const el = $("#tree"); if (!el) return;
+  drawTree(el, {q: S.fq, selected: curFolder(), drop: true,
+    onPick: name => { if (name === curFolder()) return; S.folder[S.cur] = name; S.sel.clear(); S.limit = 200; render(); }});
+}
+
+function renderList() {
+  const c = S.cache[ckey()]; if (!c || !$("#list")) return;
+  const ms = filtered(c);
+  const unread = c.messages.filter(x => !x.seen).length;
+  $("#tabs").innerHTML = [["all", "Tots", c.messages.length], ["unread", "No llegits", unread], ["read", "Llegits", c.messages.length - unread], ["selected", "Seleccionats", S.sel.size]]
+    .map(([k, t, n]) => `<button class="tab ${S.tab === k ? "on" : ""}" data-t="${k}">${t} <b>${fmtN(n)}</b></button>`).join("");
+  $$("#tabs .tab").forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.limit = 200; renderList(); });
+
+  const allSel = ms.length && ms.every(m => S.sel.has(m.uid));
+  const someSel = ms.some(m => S.sel.has(m.uid));
+  const sf = S.senderFilter;
+  $("#selrow").innerHTML = `<label class="chk"><input type="checkbox" id="selall" ${allSel ? "checked" : ""}> Selecciona tots els filtrats</label>
+    <span class="muted">Mostrant ${fmtN(ms.length)} correus${ms.length ? " · " + fmtSize(ms.reduce((s, m) => s + m.size, 0)) : ""}</span>
+    ${sf ? `<span class="filterchip">${sf.kind === "domain" ? "Domini" : "Remitent"}: ${esc(sf.value)} <button id="clrsf" title="Treu el filtre">✕</button></span>` : ""}`;
+  $("#selall").indeterminate = !allSel && someSel;
+  $("#selall").onchange = e => { ms.forEach(m => e.target.checked ? S.sel.add(m.uid) : S.sel.delete(m.uid)); renderList(); };
+  sf && ($("#clrsf").onclick = () => { S.senderFilter = null; renderList(); });
+
+  const L = $("#list");
+  if (!ms.length) {
+    L.innerHTML = `<div class="empty">${ic("inbox", 56, 1.3)}<h3>${c.messages.length ? "Cap correu coincideix amb el filtre" : "Aquesta carpeta és buida"}</h3><p>${c.messages.length ? "Prova amb un altre nom o adreça." : ""}</p></div>`;
+  } else {
+    const shown = ms.slice(0, S.limit);
+    L.innerHTML = shown.map(m => `<div class="row ${S.sel.has(m.uid) ? "sel" : ""} ${m.seen ? "" : "unread"}" draggable="true" data-u="${m.uid}">
+        <label class="chk"><input type="checkbox" ${S.sel.has(m.uid) ? "checked" : ""}></label>
+        ${avatar(m.from_email, m.from_name[0])}
+        <div style="min-width:0"><div class="t1">${m.seen ? "" : '<span class="dot"></span>'}${esc(m.from_name)}</div><div class="t2">${esc(m.subject)}</div><div class="t3">${esc(m.from_email)}</div></div>
+        <div class="meta">${fmtDate(m.ts)}<br>${fmtSize(m.size)}</div>
+        <div class="acts"><button class="btn sm" data-a="move">${ic("move", 17)} Mou</button><button class="btn sm danger" data-a="del">${ic("trash", 17)} Elimina</button></div>
+      </div>`).join("") + (ms.length > S.limit ? `<div class="more"><button class="btn" id="more">Mostra'n ${fmtN(Math.min(300, ms.length - S.limit))} més (queden ${fmtN(ms.length - S.limit)})</button></div>` : "");
+    $("#more") && ($("#more").onclick = () => { S.limit += 300; renderList(); });
+  }
+  L.onclick = e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    const uid = +row.dataset.u, a = e.target.closest("[data-a]")?.dataset.a;
+    if (a === "del") return doDelete([uid]);
+    if (a === "move") return doMove([uid]);
+    if (e.target.closest("button")) return;
+    if (e.target.tagName === "LABEL") return;   // el label ja dispara el click de l'input
+    S.sel.has(uid) ? S.sel.delete(uid) : S.sel.add(uid);
+    if (e.target.tagName !== "INPUT") $("input", row).checked = S.sel.has(uid);
+    row.classList.toggle("sel", S.sel.has(uid));
+    updateSelUI(ms);
+  };
+  L.ondragstart = e => {
+    const row = e.target.closest(".row"); if (!row) return;
+    const uid = +row.dataset.u;
+    S.drag = S.sel.has(uid) ? [...S.sel] : [uid];
+    e.dataTransfer.setData("text/plain", S.drag.length + " correus");
+    e.dataTransfer.effectAllowed = "move";
+    const g = document.createElement("div");
+    g.style.cssText = "position:absolute;top:-100px;background:#5a4cf0;color:#fff;padding:10px 16px;border-radius:12px;font:600 14px Segoe UI,sans-serif";
+    g.textContent = `${S.drag.length} correu${S.drag.length > 1 ? "s" : ""}`; document.body.appendChild(g);
+    e.dataTransfer.setDragImage(g, 10, 10); setTimeout(() => g.remove());
+    document.body.classList.add("dragging");
+  };
+  L.ondragend = () => document.body.classList.remove("dragging");
+  renderBulk();
+}
+function updateSelUI(ms) {
+  const allSel = ms.length && ms.every(m => S.sel.has(m.uid)), someSel = ms.some(m => S.sel.has(m.uid));
+  $("#selall").checked = allSel; $("#selall").indeterminate = !allSel && someSel;
+  const tb = $('#tabs [data-t="selected"] b'); if (tb) tb.textContent = fmtN(S.sel.size);
+  renderBulk();
+}
+function renderBulk() {
+  $(".bulk")?.remove();
+  if (!S.sel.size || S.page !== "correus") return;
+  const b = document.createElement("div"); b.className = "bulk";
+  b.innerHTML = `<b>${fmtN(S.sel.size)} seleccionats</b>
+    <button class="btn sm" data-b="seen">${ic("read", 17)} Marca com a llegits</button>
+    <button class="btn sm" data-b="move">${ic("move", 17)} Mou a carpeta…</button>
+    <button class="btn sm solid-danger" data-b="del">${ic("trash", 17)} Elimina ${fmtN(S.sel.size)}</button>
+    <button class="x" data-b="x" title="Desselecciona">✕</button>`;
+  document.body.appendChild(b);
+  b.onclick = e => {
+    const k = e.target.closest("[data-b]")?.dataset.b;
+    if (k === "x") { S.sel.clear(); renderList(); }
+    if (k === "del") doDelete([...S.sel]);
+    if (k === "move") doMove([...S.sel]);
+    if (k === "seen") doSeen([...S.sel]);
+  };
+}
+
+/* ============================================================ REMITENTS */
+function groupSenders(c) {
+  const g = new Map();
+  for (const m of c.messages) {
+    const key = S.sgroup === "domain" ? domainOf(m.from_email) : m.from_email;
+    let e = g.get(key);
+    if (!e) g.set(key, e = {key, names: new Map(), emails: new Set(), uids: [], size: 0, last: 0, unread: 0});
+    e.names.set(m.from_name, (e.names.get(m.from_name) || 0) + 1);
+    e.emails.add(m.from_email); e.uids.push(m.uid); e.size += m.size; e.last = Math.max(e.last, m.ts || 0);
+    if (!m.seen) e.unread++;
+  }
+  return [...g.values()].map(e => ({...e, name: [...e.names.entries()].sort((a, b) => b[1] - a[1])[0][0]})).sort((a, b) => b.uids.length - a.uids.length || b.size - a.size);
+}
+
+async function pageRemitents(m) {
+  if (!await connectGate(m, "Remitents", "")) return;
+  const a = acc();
+  if (!folderObj(curFolder())) S.folder[a.id] = (S.folders[a.id].find(f => f.special === "inbox") || {}).name;
+  m.innerHTML = accBar() + `
+    <h1>Remitents</h1>
+    <p class="sub">Qui t'envia més correus. Elimina o mou tots els correus d'un remitent (o d'un domini sencer, com infojobs.net) d'un sol cop.</p>
+    <div class="card toolbar">
+      <div class="fbtn">${ic("users", 24)}</div>
+      <select class="sel" id="sf" style="min-width:220px;max-width:280px">${treeOptions(curFolder(), {root: false, selectableOnly: true})}</select>
+      <div class="seg" id="sg"><button data-g="email">Per adreça</button><button data-g="domain">Per domini</button></div>
+      <div class="search" style="max-width:340px">${ic("search", 20)}<input id="sq" placeholder="Filtra remitents…" value="${esc(S.sq)}"></div>
+      <select class="sel" id="smin"><option value="1">Tots</option><option value="2">2 o més</option><option value="5">5 o més</option><option value="10">10 o més</option><option value="20">20 o més</option><option value="50">50 o més</option></select>
+      <span class="spacer"></span>
+      <button class="btn" id="refresh">${ic("refresh", 20)} Actualitza</button>
+    </div>
+    <div class="selrow" id="ssel"></div>
+    <div class="card list" id="slist"><div class="empty">Carregant…</div></div>`;
+  bindAccBar();
+  $("#sf").value = curFolder(); $("#smin").value = S.smin;
+  $$("#sg button").forEach(b => { b.classList.toggle("on", b.dataset.g === S.sgroup); b.onclick = () => { S.sgroup = b.dataset.g; S.ssel.clear(); $$("#sg button").forEach(x => x.classList.toggle("on", x === b)); renderSenders(); }; });
+  $("#sf").onchange = async e => { S.folder[a.id] = e.target.value; S.ssel.clear(); S.sel.clear(); render(); };
+  let t; $("#sq").oninput = e => { clearTimeout(t); t = setTimeout(() => { S.sq = e.target.value; renderSenders(); }, 120); };
+  $("#smin").onchange = e => { S.smin = +e.target.value; renderSenders(); };
+  $("#refresh").onclick = async () => { try { await loadMessages(curFolder(), true); await refreshFolders(); S.ssel.clear(); render(); } catch (e) { toast(e.message, 1); } };
+  try { await loadMessages(); } catch (e) { $("#slist").innerHTML = `<div class="empty"><h3>No s'han pogut llegir els correus</h3><p>${esc(e.message)}</p></div>`; return; }
+  if (S.page === "remitents") renderSenders();
+}
+
+function renderSenders() {
+  const c = S.cache[ckey()]; if (!c || !$("#slist")) return;
+  let gs = groupSenders(c);
+  const q = S.sq.trim().toLowerCase();
+  gs = gs.filter(g => g.uids.length >= S.smin && (!q || (g.key + " " + g.name).toLowerCase().includes(q)));
+  const max = gs[0]?.uids.length || 1;
+  const selG = gs.filter(g => S.ssel.has(g.key));
+  const selN = selG.reduce((s, g) => s + g.uids.length, 0);
+  $("#ssel").innerHTML = `<label class="chk"><input type="checkbox" id="sall" ${gs.length && selG.length === gs.length ? "checked" : ""}> Selecciona tots</label>
+    <span class="muted">${fmtN(gs.length)} ${S.sgroup === "domain" ? "dominis" : "remitents"} · ${fmtN(gs.reduce((s, g) => s + g.uids.length, 0))} correus</span>
+    ${selG.length ? `<span class="spacer"></span><button class="btn sm" id="smove">${ic("move", 17)} Mou ${fmtN(selN)} correus</button><button class="btn sm danger" id="sdel">${ic("trash", 17)} Elimina ${fmtN(selN)} correus de ${selG.length} ${S.sgroup === "domain" ? "dominis" : "remitents"}</button>` : ""}`;
+  $("#sall").indeterminate = selG.length > 0 && selG.length < gs.length;
+  $("#sall").onchange = e => { gs.forEach(g => e.target.checked ? S.ssel.add(g.key) : S.ssel.delete(g.key)); renderSenders(); };
+  const allU = () => selG.flatMap(g => g.uids);
+  $("#sdel") && ($("#sdel").onclick = async () => { await doDelete(allU(), curFolder(), ` de ${selG.length} ${S.sgroup === "domain" ? "dominis" : "remitents"}`); S.ssel.clear(); });
+  $("#smove") && ($("#smove").onclick = async () => { await doMove(allU()); S.ssel.clear(); });
+
+  const L = $("#slist");
+  if (!gs.length) { L.innerHTML = `<div class="empty">${ic("users", 56, 1.3)}<h3>Cap remitent</h3><p>${c.messages.length ? "Canvia el filtre o el mínim de correus." : "Aquesta carpeta és buida."}</p></div>`; return; }
+  const shown = gs.slice(0, 400);
+  L.innerHTML = shown.map((g, i) => `<div class="srow ${S.ssel.has(g.key) ? "sel" : ""}" data-i="${i}">
+      <label class="chk"><input type="checkbox" ${S.ssel.has(g.key) ? "checked" : ""}></label>
+      ${avatar(g.key, (S.sgroup === "domain" ? g.key : g.name)[0])}
+      <div style="min-width:0"><div class="t1">${esc(S.sgroup === "domain" ? g.key : g.name)}</div>
+        <div class="t3">${S.sgroup === "domain" ? `${g.emails.size} adreç${g.emails.size > 1 ? "es" : "a"} · ${esc([...g.emails].slice(0, 2).join(", "))}${g.emails.size > 2 ? "…" : ""}` : esc(g.key)}</div></div>
+      <div><div class="bar"><i style="width:${Math.max(3, g.uids.length / max * 100)}%"></i></div>
+        <div class="bar-l">${fmtSize(g.size)} · darrer ${fmtDate(g.last)}${g.unread ? ` · ${fmtN(g.unread)} no llegits` : ""}</div></div>
+      <div class="count">${fmtN(g.uids.length)}</div>
+      <div class="acts"><button class="btn sm" data-a="view" title="Veure els correus">${ic("eye", 17)}</button>
+        <button class="btn sm" data-a="move">${ic("move", 17)} Mou</button>
+        <button class="btn sm danger" data-a="del">${ic("trash", 17)} Elimina ${fmtN(g.uids.length)}</button></div>
+    </div>`).join("") + (gs.length > 400 ? `<div class="more muted">Es mostren els 400 primers. Fes servir el filtre per trobar-ne d'altres.</div>` : "");
+  L.onclick = e => {
+    const row = e.target.closest(".srow"); if (!row) return;
+    const g = shown[+row.dataset.i], a = e.target.closest("[data-a]")?.dataset.a;
+    if (a === "del") return doDelete(g.uids, curFolder(), ` de ${S.sgroup === "domain" ? "@" + g.key : g.name}`).then(() => S.ssel.delete(g.key));
+    if (a === "move") return doMove(g.uids);
+    if (a === "view") { S.senderFilter = {kind: S.sgroup === "domain" ? "domain" : "email", value: g.key}; S.q = ""; S.tab = "all"; S.sel.clear(); return go("correus"); }
+    if (e.target.closest("button") || e.target.tagName === "LABEL") return;
+    S.ssel.has(g.key) ? S.ssel.delete(g.key) : S.ssel.add(g.key);
+    renderSenders();
+  };
+}
+
+/* ============================================================ CARPETES */
+async function newFolderDialog(parent = "") {
+  const r = await promptBox({title: parent ? "Nova subcarpeta" : "Nova carpeta", label: "Nom", ok: "Crea",
+    extra: `<div class="fld"><label>Dins de</label><select id="par">${treeOptions(parent)}</select></div>`});
+  if (!r || !r.value.trim()) return;
+  parent = $("#par", r.ov)?.value || "";
+  try { const x = await acall("folder_create", {id: S.cur, name: r.value, parent}); S.folders[S.cur] = x.folders;
+    if (parent) openPathTo(x.name); toast(`Carpeta «${r.value.trim()}» creada`); }
+  catch (e) { toast(e.message, 1); }
+  render();
+}
+
+async function pageCarpetes(m) {
+  if (!await connectGate(m, "Carpetes", "")) return;
+  const fl = S.folders[S.cur];
+  const tot = fl.reduce((s, f) => s + (f.messages || 0), 0);
+  m.innerHTML = accBar() + `
+    <h1>Carpetes</h1>
+    <p class="sub">Les carpetes del servidor amb les seves subcarpetes. Crea'n, reanomena-les o elimina-les; els canvis es fan al servidor.</p>
+    <div class="card toolbar"><div class="fbtn">${ic("folder", 24)}</div>
+      <b style="font-size:17px">${fl.filter(f => f.selectable).length} carpetes · ${fmtN(tot)} correus</b>
+      <div class="search" style="max-width:320px;min-width:220px">${ic("search", 20)}<input id="mq" placeholder="Cerca una carpeta…" value="${esc(S.mq)}"></div>
+      <span class="spacer"></span>
+      <button class="btn sm" id="expall">Desplega-ho tot</button><button class="btn sm" id="colall">Plega-ho tot</button>
+      <button class="btn" id="refresh">${ic("refresh", 20)} Actualitza</button>
+      <button class="btn pri" id="nf">${ic("plus", 20)} Nova carpeta</button></div>
+    <div class="card list"><div class="mhead"><span>CARPETA</span><span class="r">CORREUS</span><span class="r">NO LLEGITS</span><span class="r">MIDA</span><span></span></div>
+      <div id="mtree"></div></div>`;
+  bindAccBar();
+  const {root, map} = buildTree();
+  let rows = [];
+  const draw = () => {
+    rows = flatTree(root, S.mq);
+    const el = $("#mtree");
+    if (!rows.length) { el.innerHTML = `<div class="empty">Cap carpeta coincideix.</div>`; return; }
+    el.innerHTML = rows.map(({n, depth, open}, i) => {
+      const f = n.folder, kids = n.children.length, closed = kids && !open;
+      const leaf = f ? n.label : n.label;
+      const acts = !f ? "" : `
+        ${f.selectable ? `<button class="ib" data-a="open" title="Obre els correus">${ic("eye", 18)}</button>` : `<span class="ib ghost"></span>`}
+        ${f.flags.some(x => /noinferiors/i.test(x)) ? `<span class="ib ghost"></span>` : `<button class="ib" data-a="sub" title="Crea una subcarpeta">${ic("sub", 18)}</button>`}
+        ${f.special !== "inbox" ? `<button class="ib" data-a="ren" title="Reanomena">${ic("edit", 18)}</button>` : `<span class="ib ghost"></span>`}
+        ${(f.special === "trash" || f.special === "spam") && f.messages ? `<button class="ib red" data-a="empty" title="Buida (esborra tots els correus)">${ic("refresh", 18)}</button>` : `<span class="ib ghost"></span>`}
+        ${f.special !== "inbox" ? `<button class="ib red" data-a="del" title="Elimina la carpeta">${ic("trash", 18)}</button>` : `<span class="ib ghost"></span>`}`;
+      return `<div class="mrow" data-i="${i}">
+        <div class="nm" style="padding-left:${depth * 26}px">
+          ${kids ? `<button class="tw ${open ? "open" : ""}" data-tw>${ic("chev", 15, 2.2)}</button>` : `<span class="tsp"></span>`}
+          ${f ? fIcon(f) : ic("folder", 20)}
+          <div style="min-width:0"><b>${esc(leaf)}</b>${kids ? ` <span style="color:var(--faint);font-size:12.5px">· ${kids} subcarpet${kids > 1 ? "es" : "a"}</span>` : ""}
+            ${f && f.special ? ` <span class="pill nodot vio" style="font-size:11.5px;padding:2px 9px;margin-left:4px">${SPECIAL_TXT[f.special] || f.special}</span>` : ""}
+            ${S.mq ? `<div class="path">${esc(f ? f.name : "")}</div>` : ""}</div></div>
+        <span class="r strong">${f && f.selectable ? fmtN(closed ? n.tot : f.messages) : closed ? fmtN(n.tot) : "—"}</span>
+        <span class="r">${f && f.selectable ? fmtN(closed ? n.totU : f.unseen) : "—"}</span>
+        <span class="r">${f && f.size != null ? fmtSize(f.size) : "—"}</span>
+        <div class="macts">${acts}</div></div>`;
+    }).join("");
+  };
+  draw();
+  $("#mq").oninput = e => { S.mq = e.target.value; draw(); };
+  $("#expall").onclick = () => { map.forEach(n => n.children.length && OPEN.add(n.key)); saveOpen(); draw(); };
+  $("#colall").onclick = () => { map.forEach(n => OPEN.delete(n.key)); saveOpen(); draw(); };
+  $("#nf").onclick = () => newFolderDialog();
+  $("#refresh").onclick = async () => { await refreshFolders(); render(); };
+  $("#mtree").onclick = async e => {
+    const row = e.target.closest(".mrow"); if (!row) return;
+    const {n} = rows[+row.dataset.i], f = n.folder;
+    if (e.target.closest("[data-tw]")) { OPEN.has(n.key) ? OPEN.delete(n.key) : OPEN.add(n.key); saveOpen(); return draw(); }
+    const a = e.target.closest("[data-a]")?.dataset.a;
+    if (!a) { if (n.children.length) { OPEN.has(n.key) ? OPEN.delete(n.key) : OPEN.add(n.key); saveOpen(); draw(); } return; }
+    if (a === "open") { S.folder[S.cur] = f.name; S.sel.clear(); S.senderFilter = null; openPathTo(f.name); return go("correus"); }
+    if (a === "sub") { OPEN.add(n.key); saveOpen(); return newFolderDialog(f.name); }
+    if (a === "ren") {
+      const leaf = f.delim ? f.name.split(f.delim).pop() : f.name;
+      const r = await promptBox({title: "Reanomena la carpeta", label: "Nom nou", value: leaf, ok: "Reanomena",
+        lead: f.special ? "És una carpeta especial del servidor; reanomenar-la pot fer que el teu programa de correu no la reconegui." : (n.children.length ? "Les subcarpetes es mouran amb ella." : "")});
+      if (!r || !r.value.trim() || r.value.trim() === leaf) return;
+      try { const x = await acall("folder_rename", {id: S.cur, old: f.name, new: r.value});
+        const oldK = n.key; S.folders[S.cur] = x.folders;
+        const newK = treeNodeOf(x.name);
+        if (newK) [...OPEN].filter(k => k === oldK || k.startsWith(oldK + "\u0001")).forEach(k => { OPEN.delete(k); OPEN.add(newK + k.slice(oldK.length)); });
+        saveOpen();
+        Object.keys(S.cache).filter(k => k.startsWith(S.cur + "|" + f.name)).forEach(k => delete S.cache[k]);
+        if (curFolder() === f.name) S.folder[S.cur] = x.name;
+        else if (curFolder().startsWith(f.name + (f.delim || "/"))) S.folder[S.cur] = x.name + curFolder().slice(f.name.length);
+        toast("Carpeta reanomenada"); }
+      catch (err) { toast(err.message, 1); }
+      return render();
+    }
+    if (a === "del") {
+      const subs = [...n.children]; let subN = 0; const cnt = c => { subN++; c.children.forEach(cnt); }; subs.forEach(cnt);
+      const ok = await confirmBox({title: `Eliminar «${esc(n.label)}»?`, danger: true, ok: "Elimina la carpeta",
+        body: `S'eliminarà la carpeta del servidor${f.messages ? ` <b>amb els seus ${fmtN(f.messages)} correus</b>` : ""}. No es pot desfer.
+          ${subN ? `<div class="note warn" style="margin-top:14px">Té ${subN} subcarpet${subN > 1 ? "es" : "a"}. Molts servidors no deixen eliminar una carpeta que en té: elimina-les primer.</div>` : ""}
+          ${f.special ? `<div class="note warn" style="margin-top:14px">És una carpeta especial (${SPECIAL_TXT[f.special]}).</div>` : ""}`});
+      if (!ok) return;
+      try { const x = await acall("folder_delete", {id: S.cur, name: f.name}); S.folders[S.cur] = x.folders; delete S.cache[ckey(f.name)]; toast("Carpeta eliminada"); }
+      catch (err) { toast(err.message, 1); }
+      return render();
+    }
+    if (a === "empty") {
+      const ok = await confirmBox({title: `Buidar «${esc(n.label)}»?`, danger: true, ok: "Buida",
+        body: `S'esborraran definitivament els <b>${fmtN(f.messages)}</b> correus d'aquesta carpeta.`});
+      if (!ok) return;
+      try { const r = await runJob("folder_empty", {id: S.cur, name: f.name}, "Buidant la carpeta"); delete S.cache[ckey(f.name)]; toast(`${nC(r.count)} esborrats`); }
+      catch (err) { toast(err.message, 1); }
+      await refreshFolders(); render();
+    }
+  };
+}
+
+/* ============================================================ INFORMACIÓ */
+async function pageInfo(m) {
+  if (!await connectGate(m, "Informació", "")) return;
+  const a = acc();
+  m.innerHTML = accBar() + `<h1>Informació</h1><p class="sub">Espai del compte i dades del servidor.</p><div class="card empty">Consultant el servidor…</div>`;
+  bindAccBar();
+  let info;
+  try { info = await acall("info", {id: a.id}); S.folders[a.id] = info.folders; }
+  catch (e) { m.querySelector(".empty").innerHTML = `<h3>No s'ha pogut obtenir la informació</h3><p>${esc(e.message)}</p>`; return; }
+  if (S.page !== "informacio" || S.cur !== a.id) return;
+  const qd = info.quota, fl = info.folders.filter(f => f.selectable);
+  const msgs = fl.reduce((s, f) => s + (f.messages || 0), 0);
+  const knownSize = fl.some(f => f.size != null) ? fl.reduce((s, f) => s + (f.size || 0), 0) : null;
+  // mides calculades dels correus ja carregats
+  const loaded = {}; for (const f of fl) { const c = S.cache[ckey(f.name)]; if (c) loaded[f.name] = c.messages.reduce((s, x) => s + x.size, 0); }
+  let quotaHtml;
+  if (qd.supported && !qd.unlimited && qd.limit) {
+    const pct = Math.min(100, qd.used / qd.limit * 100);
+    quotaHtml = `<div class="big-n">${fmtSize(qd.limit - qd.used)} <span style="font-size:18px;color:var(--muted);font-weight:600">lliures</span></div>
+      <div class="qbar"><i class="${pct > 90 ? "crit" : pct > 75 ? "warn" : ""}" style="width:${Math.max(1.5, pct)}%"></i></div>
+      <div style="display:flex;justify-content:space-between;color:var(--muted)"><span>${fmtSize(qd.used)} usats (${pct.toFixed(1).replace(".", ",")} %)</span><span>de ${fmtSize(qd.limit)}</span></div>
+      ${pct > 90 ? `<div class="note err" style="margin-top:16px">El compte és gairebé ple. Elimina correus grans o buida la paperera.</div>` : ""}`;
+  } else if (qd.supported && qd.unlimited) {
+    quotaHtml = `<div class="big-n" style="display:flex;align-items:center;gap:12px">${ic("infinity", 44, 2)} Il·limitat</div>
+      <p style="color:var(--muted);margin:10px 0 0">El servidor indica que aquest compte no té límit d'espai.${qd.used != null ? ` Ara ocupa <b>${fmtSize(qd.used)}</b>.` : ""}</p>`;
+  } else {
+    quotaHtml = `<div class="big-n" style="display:flex;align-items:center;gap:12px">${ic("infinity", 44, 2)} Sense límit informat</div>
+      <p style="color:var(--muted);margin:10px 0 0">El servidor no publica cap quota per IMAP. Normalment vol dir que el compte té espai il·limitat o que el límit només es pot consultar al panell del proveïdor.</p>`;
+  }
+  if (qd.messages_limit) quotaHtml += `<p style="color:var(--muted)">Missatges: ${fmtN(qd.messages_used)} de ${fmtN(qd.messages_limit)}</p>`;
+  const sec = {ssl: "SSL/TLS", starttls: "STARTTLS", none: "Sense xifrar"};
+  m.innerHTML = accBar() + `<h1>Informació</h1><p class="sub">Espai del compte i dades del servidor.</p>
+    <div class="cards2">
+      <div class="card" style="padding:30px 34px"><div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><div class="fbtn">${ic("disk", 24)}</div><b style="font-size:20px">Espai del compte</b></div>${quotaHtml}</div>
+      <div class="card" style="padding:30px 34px"><div style="display:flex;align-items:center;gap:14px;margin-bottom:18px"><div class="fbtn">${ic("mail", 24)}</div><b style="font-size:20px">Resum</b></div>
+        <div style="display:flex;gap:40px;flex-wrap:wrap"><div><div class="big-n">${fmtN(msgs)}</div><span style="color:var(--muted)">correus en total</span></div>
+        <div><div class="big-n">${fl.length}</div><span style="color:var(--muted)">carpetes</span></div>
+        <div><div class="big-n">${fmtN(fl.reduce((s, f) => s + (f.unseen || 0), 0))}</div><span style="color:var(--muted)">no llegits</span></div>
+        ${knownSize != null ? `<div><div class="big-n">${fmtSize(knownSize)}</div><span style="color:var(--muted)">ocupats</span></div>` : ""}</div></div>
+    </div>
+    <div class="cards2">
+      <div class="card" style="padding:30px 34px"><b style="font-size:20px;display:block;margin-bottom:18px">Compte i servidor</b>
+        <div class="kv"><span>Nom</span><b>${esc(a.label)}</b><span>Correu</span><div>${esc(a.email)}</div><span>Usuari</span><div>${esc(a.username)}</div>
+          <span>Tipus</span><div>${a.type === "gmail" ? "Gmail" : "Servidor propi (Roundcube)"}</div>
+          <span>IMAP</span><div>${esc(a.imap_host)}:${a.imap_port} · ${sec[a.imap_security]}</div>
+          <span>SMTP</span><div>${a.smtp_host ? `${esc(a.smtp_host)}:${a.smtp_port} · ${sec[a.smtp_security]}` : "—"}</div>
+          <span>Paperera</span><div>${esc(info.trash || "No trobada")}</div>
+          <span>En eliminar</span><div>${a.delete_mode === "permanent" ? "Esborrar definitivament" : "Moure a la paperera"}</div>
+          <span>Contrasenya</span><div>${a.has_password ? "Desada en aquest ordinador" : "Es demana en obrir el compte"}</div></div></div>
+      <div class="card" style="padding:30px 34px"><b style="font-size:20px;display:block;margin-bottom:18px">Capacitats del servidor</b>
+        <div class="caps">${info.capabilities.map(c => `<i>${esc(c)}</i>`).join("")}</div>
+        <p style="color:var(--muted);font-size:13.5px;margin-top:16px">${info.capabilities.includes("MOVE") ? "✓ Mou correus de manera nativa (MOVE)." : "Mou correus copiant i esborrant (el servidor no té MOVE)."}<br>
+        ${info.capabilities.includes("QUOTA") ? "✓ Informa de la quota d'espai." : "No informa de la quota d'espai."}</p></div>
+    </div>
+    <div class="card list"><table class="t"><thead><tr><th>CARPETA</th><th class="r">CORREUS</th><th class="r">NO LLEGITS</th><th class="r">MIDA</th></tr></thead><tbody>
+      ${fl.map(f => `<tr><td><span style="display:inline-flex;gap:10px;align-items:center;color:var(--accent)">${fIcon(f)}<span style="color:var(--ink)">${esc(fname(f))}</span></span></td>
+        <td class="r">${fmtN(f.messages)}</td><td class="r">${fmtN(f.unseen)}</td>
+        <td class="r" style="color:var(--muted)">${f.size != null ? fmtSize(f.size) : loaded[f.name] != null ? fmtSize(loaded[f.name]) : "—"}</td></tr>`).join("")}
+    </tbody></table></div>
+    ${knownSize == null ? `<p style="color:var(--faint);font-size:13px;margin-top:12px">La mida per carpeta apareix quan l'has obert a «Correus» (el servidor no la dona directament).</p>` : ""}`;
+  bindAccBar();
+}
+
+/* ============================================================ COMPTES */
+async function pageComptes(m) {
+  m.innerHTML = accBar() + `<h1>Comptes</h1><p class="sub">Afegeix, edita o elimina els teus comptes de correu.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(380px,1fr))">${S.accounts.map(a => `<div class="card fcard">
+      <div class="top"><div class="fi" style="font-weight:800;font-size:22px">${a.type === "gmail" ? "G" : ic("server", 26)}</div>
+        <div style="min-width:0;flex:1"><h3>${esc(a.label)}</h3><div class="path">${esc(a.email)}</div></div>
+        <span class="pill ${a.connected ? "" : "grey"}">${a.connected ? "Connectat" : "Desconnectat"}</span></div>
+      <div class="kv" style="grid-template-columns:110px 1fr;font-size:14px"><span>Servidor</span><div>${esc(a.imap_host)}:${a.imap_port}</div>
+        <span>Contrasenya</span><div>${a.has_password ? "Desada" : "Es demana cada cop"}</div></div>
+      <div class="bt"><button class="btn sm" data-a="open" data-id="${a.id}">${ic("eye", 17)} Obre</button>
+        <button class="btn sm" data-a="edit" data-id="${a.id}">${ic("edit", 17)} Edita</button>
+        ${a.connected ? `<button class="btn sm" data-a="disc" data-id="${a.id}">${ic("plug", 17)} Desconnecta</button>` : ""}
+        <button class="btn sm danger" data-a="del" data-id="${a.id}">${ic("trash", 17)} Elimina</button></div></div>`).join("")}
+      <button class="card fcard" id="addc" style="border:2px dashed var(--accent-line);align-items:center;justify-content:center;cursor:pointer;color:var(--accent);font-weight:700;font-size:17px;min-height:200px;background:#fbfaff">${ic("plus", 34)} Afegeix compte</button>
+    </div>`;
+  bindAccBar();
+  $("#addc").onclick = () => accountForm();
+  $$("[data-a]").forEach(b => b.onclick = async () => {
+    const a = S.accounts.find(x => x.id === b.dataset.id);
+    if (b.dataset.a === "open") { S.cur = a.id; localStorage.setItem("gc.cur", a.id); go("correus"); }
+    if (b.dataset.a === "edit") accountForm(a);
+    if (b.dataset.a === "disc") { await call("disconnect", {id: a.id}); delete S.folders[a.id]; Object.keys(S.cache).filter(k => k.startsWith(a.id + "|")).forEach(k => delete S.cache[k]); await loadState(); render(); }
+    if (b.dataset.a === "del") {
+      const ok = await confirmBox({title: `Treure «${esc(a.label)}»?`, danger: true, ok: "Treu el compte",
+        body: "Només s'esborra la configuració d'aquest programa. Els correus del servidor no es toquen."});
+      if (!ok) return;
+      await call("account_delete", {id: a.id}); delete S.folders[a.id]; await loadState(); render();
+    }
+  });
+}
+
+function accountForm(existing) {
+  const e = existing || {type: "roundcube", imap_port: 993, imap_security: "ssl", smtp_port: 465, smtp_security: "ssl", save_password: true, delete_mode: "trash"};
+  let type = e.type;
+  const ov = modal(`<h2>${existing ? "Edita el compte" : "Afegeix un compte"}</h2><p class="lead">${existing ? "Modifica les dades del compte." : "Tria el tipus de compte i escriu les dades del servidor."}</p>
+    <div class="types">
+      <button class="type" data-t="roundcube"><div class="ti">${ic("server", 24)}</div><div><b>Servidor propi</b><span>Roundcube · IMAP/SMTP</span></div></button>
+      <button class="type" data-t="gmail"><div class="ti">G</div><div><b>Gmail</b><span>Compte de Google</span></div></button>
+    </div>
+    <div class="note" id="gnote">A Gmail necessites una <b>contrasenya d'aplicació</b> (16 lletres), no la contrasenya normal. <a href="#" id="hl">Com s'obté?</a></div>
+    <div class="g2"><div class="fld"><label>Adreça de correu</label><input id="f_email" type="email" value="${esc(e.email || "")}" placeholder="nom@domini.cat"></div>
+      <div class="fld"><label>Nom del compte</label><input id="f_label" value="${esc(e.label || "")}" placeholder="Feina, Personal…"></div></div>
+    <div class="g2"><div class="fld" id="w_user"><label>Usuari</label><input id="f_user" value="${esc(e.username || "")}" placeholder="Normalment, l'adreça de correu"></div>
+      <div class="fld"><label id="pwl">Contrasenya</label><input id="f_pw" type="password" autocomplete="new-password" placeholder="${existing && existing.has_password ? "•••••••• (desada; deixa-la en blanc per mantenir-la)" : ""}"></div></div>
+    <label class="chk" style="margin:2px 0 4px"><input type="checkbox" id="f_save" ${e.save_password ? "checked" : ""}> Desa la contrasenya en aquest ordinador</label>
+    <div style="color:var(--muted);font-size:13px;margin:0 0 6px 34px" id="savehint"></div>
+    <div id="srv">
+      <div class="sect">SERVIDOR D'ENTRADA (IMAP)</div>
+      <div class="g3"><div class="fld"><label>Servidor</label><input id="f_ih" value="${esc(e.imap_host || "")}" placeholder="mail.domini.cat"></div>
+        <div class="fld"><label>Port</label><input id="f_ip" type="number" value="${e.imap_port || 993}"></div>
+        <div class="fld"><label>Seguretat</label><select id="f_is"><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option><option value="none">Cap</option></select></div></div>
+      <div class="sect">SERVIDOR DE SORTIDA (SMTP) · opcional</div>
+      <div class="g3"><div class="fld"><label>Servidor</label><input id="f_sh" value="${esc(e.smtp_host || "")}" placeholder="smtp.domini.cat"></div>
+        <div class="fld"><label>Port</label><input id="f_sp" type="number" value="${e.smtp_port || 465}"></div>
+        <div class="fld"><label>Seguretat</label><select id="f_ss"><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option><option value="none">Cap</option></select></div></div>
+    </div>
+    <div class="fld" style="margin-top:6px"><label>Quan eliminis correus</label><select id="f_dm"><option value="trash">Mou-los a la paperera (recuperables)</option><option value="permanent">Esborra'ls definitivament</option></select></div>
+    <div class="note" id="res" style="display:none"></div>
+    <div class="foot"><button class="btn" data-x>Cancel·la</button><button class="btn" id="test">${ic("plug", 18)} Prova la connexió</button><button class="btn pri" id="save">${ic("check", 18)} Desa</button></div>`, "wide");
+  ov.close = () => ov.remove();
+  $("#f_is", ov).value = e.imap_security || "ssl"; $("#f_ss", ov).value = e.smtp_security || "ssl"; $("#f_dm", ov).value = e.delete_mode || "trash";
+  const upd = () => {
+    $$(".type", ov).forEach(b => b.classList.toggle("on", b.dataset.t === type));
+    $("#srv", ov).style.display = type === "gmail" ? "none" : "";
+    $("#w_user", ov).style.display = type === "gmail" ? "none" : "";
+    $("#gnote", ov).style.display = type === "gmail" ? "" : "none";
+    $("#pwl", ov).textContent = type === "gmail" ? "Contrasenya d'aplicació" : "Contrasenya";
+    $("#savehint", ov).textContent = $("#f_save", ov).checked ? "Es guarda xifrada amb el teu usuari de Windows." : "Te la demanarà cada vegada que obris aquest compte.";
+  };
+  upd();
+  $$(".type", ov).forEach(b => b.onclick = () => { type = b.dataset.t; upd(); });
+  $("#f_save", ov).onchange = upd;
+  $("#hl", ov).onclick = ev => { ev.preventDefault(); ov.remove(); go("ajuda"); };
+  $("#f_email", ov).oninput = ev => {
+    const v = ev.target.value, d = v.split("@")[1];
+    if (/@(gmail|googlemail)\.com$/i.test(v) && type !== "gmail") { type = "gmail"; upd(); }
+    if (d && type !== "gmail") {
+      if (!$("#f_ih", ov).dataset.touched) $("#f_ih", ov).value = "mail." + d;
+      if (!$("#f_sh", ov).dataset.touched) $("#f_sh", ov).value = "mail." + d;
+    }
+  };
+  ["#f_ih", "#f_sh"].forEach(s => $(s, ov).addEventListener("input", ev => ev.target.dataset.touched = 1));
+  if (existing) { $("#f_ih", ov).dataset.touched = 1; $("#f_sh", ov).dataset.touched = 1; }
+  $("#f_is", ov).onchange = ev => { $("#f_ip", ov).value = ev.target.value === "ssl" ? 993 : 143; };
+  $("#f_ss", ov).onchange = ev => { $("#f_sp", ov).value = ev.target.value === "ssl" ? 465 : 587; };
+  const data = () => ({id: existing?.id, type, email: $("#f_email", ov).value.trim(), label: $("#f_label", ov).value.trim(),
+    username: type === "gmail" ? $("#f_email", ov).value.trim() : $("#f_user", ov).value.trim(),
+    imap_host: $("#f_ih", ov).value.trim(), imap_port: +$("#f_ip", ov).value, imap_security: $("#f_is", ov).value,
+    smtp_host: $("#f_sh", ov).value.trim(), smtp_port: +$("#f_sp", ov).value, smtp_security: $("#f_ss", ov).value,
+    save_password: $("#f_save", ov).checked, delete_mode: $("#f_dm", ov).value});
+  const res = (cls, html) => { const r = $("#res", ov); r.className = "note " + cls; r.style.display = "block"; r.innerHTML = html; };
+  $("[data-x]", ov).onclick = () => ov.remove();
+  $("#test", ov).onclick = async () => {
+    const b = $("#test", ov); b.disabled = true; res("", "Provant la connexió…");
+    try {
+      const r = await call("account_test", {account: data(), password: $("#f_pw", ov).value});
+      res("ok", `✓ Connexió IMAP correcta. S'han trobat <b>${r.folders}</b> carpetes.` + (r.smtp ? (r.smtp === "ok" ? "<br>✓ SMTP correcte." : `<br>⚠ ${esc(r.smtp)}`) : ""));
+    } catch (er) { res("err", esc(er.message)); }
+    b.disabled = false;
+  };
+  $("#save", ov).onclick = async () => {
+    const d = data();
+    if (!d.email) return res("err", "Escriu l'adreça de correu.");
+    if (type !== "gmail" && !d.imap_host) return res("err", "Escriu el servidor IMAP.");
+    const pw = $("#f_pw", ov).value;
+    const b = $("#save", ov); b.disabled = true;
+    try {
+      const r = await call("account_save", {account: d, password: pw || null});
+      if (existing) { delete S.folders[r.account.id]; Object.keys(S.cache).filter(k => k.startsWith(r.account.id + "|")).forEach(k => delete S.cache[k]); }
+      S.cur = r.account.id; localStorage.setItem("gc.cur", S.cur);
+      await loadState(); ov.remove();
+      toast(existing ? "Compte desat" : "Compte afegit");
+      S.page = existing ? S.page : "correus"; render();
+    } catch (er) { res("err", esc(er.message)); b.disabled = false; }
+  };
+  setTimeout(() => $("#f_email", ov).focus(), 30);
+}
+
+/* ============================================================ AJUDA */
+function pageAjuda(m) {
+  m.innerHTML = (S.accounts.length ? accBar() : "") + `<div class="help"><h1>Com connectar-lo</h1><p class="sub">Què necessites per afegir cada tipus de compte.</p>
+    <div class="card"><h3 style="margin-top:0">Gmail</h3>
+      <p>Google no deixa entrar per IMAP amb la contrasenya normal. Cal crear una <b>contrasenya d'aplicació</b>:</p>
+      <ol><li>Activa la <b>verificació en dos passos</b> al teu compte de Google (Seguretat).</li>
+        <li>Obre <code>myaccount.google.com/apppasswords</code>, escriu un nom (p. ex. «Gestor de Correus») i prem <b>Crea</b>.</li>
+        <li>Copia les 16 lletres que surten i enganxa-les com a contrasenya aquí (els espais no importen).</li></ol>
+      <p style="color:var(--muted)">El servidor ja s'omple sol: <code>imap.gmail.com</code> port 993 SSL. A Gmail, eliminar mou els correus a la Paperera i Google els esborra al cap de 30 dies; pots buidar-la a «Carpetes».</p></div>
+    <div class="card"><h3 style="margin-top:0">Servidor propi (Roundcube)</h3>
+      <p>Roundcube és la web del correu; per dins fa servir IMAP i SMTP. Les dades te les dona el teu proveïdor d'allotjament (sovint a l'apartat «Configurar client de correu»):</p>
+      <ol><li><b>Servidor IMAP</b>: sovint <code>mail.eldomini.cat</code>, port <b>993</b> amb SSL/TLS (o 143 amb STARTTLS).</li>
+        <li><b>Servidor SMTP</b> (opcional, per a futures funcions): port <b>465</b> SSL/TLS o <b>587</b> STARTTLS.</li>
+        <li><b>Usuari</b>: normalment l'adreça de correu completa. <b>Contrasenya</b>: la mateixa que fas servir a Roundcube.</li></ol>
+      <p style="color:var(--muted)">Prem «Prova la connexió» abans de desar per comprovar que tot és correcte.</p></div>
+    <div class="card"><h3 style="margin-top:0">Contrasenyes</h3>
+      <p>Si marques «Desa la contrasenya», es guarda xifrada amb el teu usuari de Windows (només el teu usuari en aquest ordinador la pot llegir). Si no, el programa te la demana cada vegada que obres el compte i només la recorda mentre està obert.</p>
+      ${S.configPath ? `<p style="color:var(--muted)">Configuració: <code>${esc(S.configPath)}</code></p>` : ""}</div></div>`;
+  if (S.accounts.length) bindAccBar();
+}
+
+/* ---------------------------------------------------------------- init */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") return closeTop();
+  if ((e.key === "Delete") && S.page === "correus" && S.sel.size && !$(".ov") && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) doDelete([...S.sel]);
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f" && (S.page === "correus" || S.page === "remitents")) { e.preventDefault(); ($("#q") || $("#sq"))?.focus(); }
+});
+setInterval(() => fetch("/api/ping", {method: "POST", headers: {"X-Token": TOKEN}, body: "{}"}).catch(() => {}), 30000);
+(async () => { await loadState(); render(); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# Opcional: obre el programa en una finestra pròpia (sense navegador).
+pywebview>=5.0

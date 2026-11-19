@@ -1,0 +1,47 @@
+import asyncio, sys
+from playwright.async_api import async_playwright
+URL="http://127.0.0.1:8765/"
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+        pg = await b.new_page(viewport={"width":1600,"height":1000}, device_scale_factor=1)
+        errs=[]; pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("console", lambda m: m.type=="error" and errs.append(m.text))
+        await pg.goto(URL); await pg.wait_for_timeout(500)
+        await pg.screenshot(path="/tmp/shots/0_welcome.png")
+        await pg.click("#w1"); await pg.wait_for_timeout(200)
+        await pg.fill("#f_email","jo@lamevaempresa.cat"); await pg.fill("#f_label","Feina")
+        await pg.fill("#f_pw","dolenta"); await pg.click("#test"); await pg.wait_for_timeout(500)
+        await pg.screenshot(path="/tmp/shots/1_form_err.png")
+        await pg.fill("#f_pw","secret"); await pg.click("#test"); await pg.wait_for_timeout(500)
+        await pg.screenshot(path="/tmp/shots/1_form_ok.png")
+        await pg.click("#save"); await pg.wait_for_timeout(2500)
+        await pg.screenshot(path="/tmp/shots/2_correus.png")
+        await pg.fill("#q","infojobs"); await pg.wait_for_timeout(400)
+        await pg.click("#selall"); await pg.wait_for_timeout(200)
+        await pg.screenshot(path="/tmp/shots/3_search_sel.png")
+        await pg.click('.bulk [data-b="del"]'); await pg.wait_for_timeout(300)
+        await pg.screenshot(path="/tmp/shots/4_confirm.png")
+        await pg.click("[data-ok]"); await pg.wait_for_timeout(1500)
+        await pg.screenshot(path="/tmp/shots/5_after_del.png")
+        await pg.fill("#q",""); await pg.wait_for_timeout(300)
+        # drag and drop first row onto Feina
+        await pg.drag_to if False else None
+        row = pg.locator(".row").first; tgt = pg.locator('.tn', has_text='Feina').first
+        await row.drag_to(tgt); await pg.wait_for_timeout(1500)
+        await pg.screenshot(path="/tmp/shots/6_drag.png")
+        await pg.click('.nav[data-p="remitents"]'); await pg.wait_for_timeout(800)
+        await pg.screenshot(path="/tmp/shots/7_remitents.png")
+        await pg.click('#sg button[data-g="domain"]'); await pg.wait_for_timeout(300)
+        await pg.screenshot(path="/tmp/shots/8_rem_domain.png")
+        await pg.click('.srow[data-i="0"] [data-a="del"]'); await pg.wait_for_timeout(300)
+        await pg.click("[data-ok]"); await pg.wait_for_timeout(1500)
+        await pg.screenshot(path="/tmp/shots/9_rem_after.png")
+        await pg.click('.nav[data-p="carpetes"]'); await pg.wait_for_timeout(800)
+        await pg.screenshot(path="/tmp/shots/10_carpetes.png")
+        await pg.click('.nav[data-p="informacio"]'); await pg.wait_for_timeout(1000)
+        await pg.screenshot(path="/tmp/shots/11_info.png", full_page=True)
+        await pg.click('.nav[data-p="comptes"]'); await pg.wait_for_timeout(500)
+        await pg.screenshot(path="/tmp/shots/12_comptes.png")
+        print("ERRORS:", errs)
+        await b.close()
+asyncio.run(main())
