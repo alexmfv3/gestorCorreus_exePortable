@@ -194,7 +194,7 @@ table.t tr:last-child td{border-bottom:0}
 .fld small{color:var(--muted);font-size:12.5px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .g3{display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:12px}
-.types{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.types{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
 .type{border:1.5px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;display:flex;gap:14px;align-items:center;background:#fff;text-align:left}
 .type.on{border-color:var(--accent);background:var(--accent-soft)}
 .type .ti{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:#fff;font-weight:800;font-size:20px;color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.08)}
@@ -327,6 +327,12 @@ const P = {
 };
 const ic = (n, s=22, w=1.8) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||P.folder}</svg>`;
 const SPECIAL_IC = {inbox:"inbox", sent:"send", drafts:"draft", trash:"trash", spam:"spam", flagged:"star", important:"star", archive:"archive", all:"archive"};
+const PROV = {
+  gmail: {name: "Gmail", mark: "G", sub: "Compte de Google", re: /@(gmail|googlemail)\.com$/i},
+  yahoo: {name: "Yahoo", mark: "Y!", sub: "Yahoo Mail", re: /@(yahoo\.[a-z.]+|ymail\.com|rocketmail\.com|myyahoo\.com)$/i},
+};
+const accMark = (a, size, big) => PROV[a.type] ? `<b${big ? ' style="font-size:' + (PROV[a.type].mark.length > 1 ? 34 : 42) + 'px"' : ""}>${PROV[a.type].mark}</b>` : ic("server", size, big ? 1.6 : 1.8);
+const accKind = a => PROV[a.type]?.name || "Roundcube";
 const SPECIAL_TXT = {inbox:"Entrada", sent:"Enviats", drafts:"Esborranys", trash:"Paperera", spam:"Correu brossa", all:"Tots", flagged:"Destacats", important:"Importants", archive:"Arxiu"};
 
 /* ---------------------------------------------------------------- state */
@@ -697,15 +703,15 @@ function renderShell() {
   $("#nav1").innerHTML = nav(NAV1); $("#nav2").innerHTML = nav(NAV2); $("#nav3").innerHTML = nav(NAV3);
   $$(".nav").forEach(b => b.onclick = () => go(b.dataset.p));
   const a = acc();
-  $("#sidefoot").innerHTML = a ? `<div class="logo av" style="width:46px;height:46px;border-radius:50%">${a.type === "gmail" ? "<b>G</b>" : ic("server", 22)}</div>
-     <div class="who"><b>${esc(a.label)}</b><span>${a.type === "gmail" ? "Gmail" : "Roundcube"} · ${a.connected ? "connectat" : "desconnectat"}</span></div>
+  $("#sidefoot").innerHTML = a ? `<div class="logo av" style="width:46px;height:46px;border-radius:50%">${accMark(a, 22)}</div>
+     <div class="who"><b>${esc(a.label)}</b><span>${accKind(a)} · ${a.connected ? "connectat" : "desconnectat"}</span></div>
      <span style="width:11px;height:11px;border-radius:50%;background:${a.connected ? "#1fbf66" : "#c6c8d4"}"></span>`
     : `<div class="who"><b>Cap compte</b><span>Afegeix-ne un per començar</span></div>`;
 }
 function accBar() {
   return `<div class="toplabel">COMPTES DE CORREU</div><div class="accbar">${S.accounts.map(a => `
     <button class="acc ${a.id === S.cur ? "on" : ""}" data-acc="${a.id}">
-      <div class="ic">${a.type === "gmail" ? "G" : ic("server", 20)}<i class="${a.connected ? "ok" : ""}"></i></div>
+      <div class="ic">${accMark(a, 20)}<i class="${a.connected ? "ok" : ""}"></i></div>
       <div><b>${esc(a.label)}</b><span>${a.connected ? "Connectat" : "Desconnectat"} · ${esc(a.email)}</span></div>
     </button>`).join("")}
     <button class="acc add" id="addacc">${ic("plus", 18)} Afegeix compte</button></div>`;
@@ -793,8 +799,8 @@ async function pageCorreus(m) {
     <h1>Correus</h1>
     <p class="sub">Cerca per remitent, selecciona i elimina o mou els correus. Els canvis s'apliquen directament al servidor. Pots arrossegar correus a una carpeta.</p>
     <div class="cards2">
-      <div class="card hero"><div class="big">${a.type === "gmail" ? '<b style="font-size:42px">G</b>' : ic("server", 44, 1.6)}</div>
-        <div style="min-width:0"><h2>${esc(a.label)}</h2><p>${a.type === "gmail" ? "Gmail" : "Roundcube · " + esc(a.imap_host)} · ${esc(a.email)}</p><span class="pill">Connectat</span></div></div>
+      <div class="card hero"><div class="big">${accMark(a, 44, true)}</div>
+        <div style="min-width:0"><h2>${esc(a.label)}</h2><p>${PROV[a.type] ? accKind(a) : "Roundcube · " + esc(a.imap_host)} · ${esc(a.email)}</p><span class="pill">Connectat</span></div></div>
       <div class="card hero"><div class="big v">${ic(SPECIAL_IC[fo?.special] || "folder", 44, 1.6)}</div>
         <div><h2 id="hcount">${c ? fmtN(c.messages.length) + " correus" : "…"}</h2><p>a ${esc(fname(fo))}</p><span class="pill vio" id="hunread">${c ? fmtN(c.messages.filter(x => !x.seen).length) : "…"} no llegits</span></div></div>
     </div>
@@ -1165,7 +1171,7 @@ async function pageInfo(m) {
     <div class="cards2">
       <div class="card" style="padding:30px 34px"><b style="font-size:20px;display:block;margin-bottom:18px">Compte i servidor</b>
         <div class="kv"><span>Nom</span><b>${esc(a.label)}</b><span>Correu</span><div>${esc(a.email)}</div><span>Usuari</span><div>${esc(a.username)}</div>
-          <span>Tipus</span><div>${a.type === "gmail" ? "Gmail" : "Servidor propi (Roundcube)"}</div>
+          <span>Tipus</span><div>${PROV[a.type] ? accKind(a) : "Servidor propi (Roundcube)"}</div>
           <span>IMAP</span><div>${esc(a.imap_host)}:${a.imap_port} · ${sec[a.imap_security]}</div>
           <span>SMTP</span><div>${a.smtp_host ? `${esc(a.smtp_host)}:${a.smtp_port} · ${sec[a.smtp_security]}` : "—"}</div>
           <span>Paperera</span><div>${esc(info.trash || "No trobada")}</div>
@@ -1189,7 +1195,7 @@ async function pageInfo(m) {
 async function pageComptes(m) {
   m.innerHTML = accBar() + `<h1>Comptes</h1><p class="sub">Afegeix, edita o elimina els teus comptes de correu.</p>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(380px,1fr))">${S.accounts.map(a => `<div class="card fcard">
-      <div class="top"><div class="fi" style="font-weight:800;font-size:22px">${a.type === "gmail" ? "G" : ic("server", 26)}</div>
+      <div class="top"><div class="fi" style="font-weight:800;font-size:20px">${accMark(a, 26)}</div>
         <div style="min-width:0;flex:1"><h3>${esc(a.label)}</h3><div class="path">${esc(a.email)}</div></div>
         <span class="pill ${a.connected ? "" : "grey"}">${a.connected ? "Connectat" : "Desconnectat"}</span></div>
       <div class="kv" style="grid-template-columns:110px 1fr;font-size:14px"><span>Servidor</span><div>${esc(a.imap_host)}:${a.imap_port}</div>
@@ -1223,8 +1229,9 @@ function accountForm(existing) {
     <div class="types">
       <button class="type" data-t="roundcube"><div class="ti">${ic("server", 24)}</div><div><b>Servidor propi</b><span>Roundcube · IMAP/SMTP</span></div></button>
       <button class="type" data-t="gmail"><div class="ti">G</div><div><b>Gmail</b><span>Compte de Google</span></div></button>
+      <button class="type" data-t="yahoo"><div class="ti" style="font-size:17px">Y!</div><div><b>Yahoo</b><span>Yahoo Mail</span></div></button>
     </div>
-    <div class="note" id="gnote">A Gmail necessites una <b>contrasenya d'aplicació</b> (16 lletres), no la contrasenya normal. <a href="#" id="hl">Com s'obté?</a></div>
+    <div class="note" id="gnote">A <span id="gname">Gmail</span> necessites una <b>contrasenya d'aplicació</b>, no la contrasenya normal. <a href="#" id="hl">Com s'obté?</a></div>
     <div class="g2"><div class="fld"><label>Adreça de correu</label><input id="f_email" type="email" value="${esc(e.email || "")}" placeholder="nom@domini.cat"></div>
       <div class="fld"><label>Nom del compte</label><input id="f_label" value="${esc(e.label || "")}" placeholder="Feina, Personal…"></div></div>
     <div class="g2"><div class="fld" id="w_user"><label>Usuari</label><input id="f_user" value="${esc(e.username || "")}" placeholder="Normalment, l'adreça de correu"></div>
@@ -1248,10 +1255,12 @@ function accountForm(existing) {
   $("#f_is", ov).value = e.imap_security || "ssl"; $("#f_ss", ov).value = e.smtp_security || "ssl"; $("#f_dm", ov).value = e.delete_mode || "trash";
   const upd = () => {
     $$(".type", ov).forEach(b => b.classList.toggle("on", b.dataset.t === type));
-    $("#srv", ov).style.display = type === "gmail" ? "none" : "";
-    $("#w_user", ov).style.display = type === "gmail" ? "none" : "";
-    $("#gnote", ov).style.display = type === "gmail" ? "" : "none";
-    $("#pwl", ov).textContent = type === "gmail" ? "Contrasenya d'aplicació" : "Contrasenya";
+    const pv = PROV[type];
+    $("#srv", ov).style.display = pv ? "none" : "";
+    $("#w_user", ov).style.display = pv ? "none" : "";
+    $("#gnote", ov).style.display = pv ? "" : "none";
+    if (pv) $("#gname", ov).textContent = pv.name;
+    $("#pwl", ov).textContent = pv ? "Contrasenya d'aplicació" : "Contrasenya";
     $("#savehint", ov).textContent = $("#f_save", ov).checked ? "Es guarda xifrada amb el teu usuari de Windows." : "Te la demanarà cada vegada que obris aquest compte.";
   };
   upd();
@@ -1260,8 +1269,8 @@ function accountForm(existing) {
   $("#hl", ov).onclick = ev => { ev.preventDefault(); ov.remove(); go("ajuda"); };
   $("#f_email", ov).oninput = ev => {
     const v = ev.target.value, d = v.split("@")[1];
-    if (/@(gmail|googlemail)\.com$/i.test(v) && type !== "gmail") { type = "gmail"; upd(); }
-    if (d && type !== "gmail") {
+    for (const [k, pv] of Object.entries(PROV)) if (pv.re.test(v) && type !== k) { type = k; upd(); }
+    if (d && !PROV[type]) {
       if (!$("#f_ih", ov).dataset.touched) $("#f_ih", ov).value = "mail." + d;
       if (!$("#f_sh", ov).dataset.touched) $("#f_sh", ov).value = "mail." + d;
     }
@@ -1271,7 +1280,7 @@ function accountForm(existing) {
   $("#f_is", ov).onchange = ev => { $("#f_ip", ov).value = ev.target.value === "ssl" ? 993 : 143; };
   $("#f_ss", ov).onchange = ev => { $("#f_sp", ov).value = ev.target.value === "ssl" ? 465 : 587; };
   const data = () => ({id: existing?.id, type, email: $("#f_email", ov).value.trim(), label: $("#f_label", ov).value.trim(),
-    username: type === "gmail" ? $("#f_email", ov).value.trim() : $("#f_user", ov).value.trim(),
+    username: PROV[type] ? $("#f_email", ov).value.trim() : $("#f_user", ov).value.trim(),
     imap_host: $("#f_ih", ov).value.trim(), imap_port: +$("#f_ip", ov).value, imap_security: $("#f_is", ov).value,
     smtp_host: $("#f_sh", ov).value.trim(), smtp_port: +$("#f_sp", ov).value, smtp_security: $("#f_ss", ov).value,
     save_password: $("#f_save", ov).checked, delete_mode: $("#f_dm", ov).value});
@@ -1288,7 +1297,7 @@ function accountForm(existing) {
   $("#save", ov).onclick = async () => {
     const d = data();
     if (!d.email) return res("err", "Escriu l'adreça de correu.");
-    if (type !== "gmail" && !d.imap_host) return res("err", "Escriu el servidor IMAP.");
+    if (!PROV[type] && !d.imap_host) return res("err", "Escriu el servidor IMAP.");
     const pw = $("#f_pw", ov).value;
     const b = $("#save", ov); b.disabled = true;
     try {
@@ -1312,6 +1321,12 @@ function pageAjuda(m) {
         <li>Obre <code>myaccount.google.com/apppasswords</code>, escriu un nom (p. ex. «Gestor de Correus») i prem <b>Crea</b>.</li>
         <li>Copia les 16 lletres que surten i enganxa-les com a contrasenya aquí (els espais no importen).</li></ol>
       <p style="color:var(--muted)">El servidor ja s'omple sol: <code>imap.gmail.com</code> port 993 SSL. A Gmail, eliminar mou els correus a la Paperera i Google els esborra al cap de 30 dies; pots buidar-la a «Carpetes».</p></div>
+    <div class="card"><h3 style="margin-top:0">Yahoo</h3>
+      <p>Yahoo tampoc deixa entrar per IMAP amb la contrasenya normal. Cal una <b>contrasenya d'aplicació</b>:</p>
+      <ol><li>Entra a Yahoo i obre <b>Informació del compte → Seguretat del compte</b>.</li>
+        <li>Prem <b>Genera una contrasenya d'aplicació</b> (o «Generate app password»), escriu un nom (p. ex. «Gestor de Correus») i prem <b>Genera</b>.</li>
+        <li>Copia la contrasenya que surt i enganxa-la aquí (els espais no importen).</li></ol>
+      <p style="color:var(--muted)">El servidor ja s'omple sol: <code>imap.mail.yahoo.com</code> port 993 SSL. Funciona amb adreces <code>@yahoo.com</code>, <code>@yahoo.es</code>, <code>@ymail.com</code> i <code>@rocketmail.com</code>. A Yahoo la carpeta de correu brossa es diu «Bulk» i surt amb la icona d'avís.</p></div>
     <div class="card"><h3 style="margin-top:0">Servidor propi (Roundcube)</h3>
       <p>Roundcube és la web del correu; per dins fa servir IMAP i SMTP. Les dades te les dona el teu proveïdor d'allotjament (sovint a l'apartat «Configurar client de correu»):</p>
       <ol><li><b>Servidor IMAP</b>: sovint <code>mail.eldomini.cat</code>, port <b>993</b> amb SSL/TLS (o 143 amb STARTTLS).</li>

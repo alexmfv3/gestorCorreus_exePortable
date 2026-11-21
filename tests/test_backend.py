@@ -57,6 +57,16 @@ def main():
     assert q["supported"] and q["limit"] == 1024 ** 3
     g = app.api("account_test", {"account": {"type": "gmail", "email": "a@gmail.com"}, "password": "sec ret"})
     assert g["folders"] > 0
+    # Yahoo: servidor predefinit, contrasenya d'aplicació amb espais, carpetes per nom
+    y = app.api("account_save", {"account": {"type": "yahoo", "email": "algu@yahoo.es", "imap_host": "x",
+                                             "save_password": False}, "password": "sec ret"})["account"]
+    assert y["imap_host"] == "imap.mail.yahoo.com" and y["smtp_host"] == "smtp.mail.yahoo.com", y
+    yf = {f["name"]: f["special"] for f in app.api("connect", {"id": y["id"]})["folders"]}
+    assert yf["Bulk"] == "spam" and yf["Draft"] == "drafts" and yf["Trash"] == "trash" and yf["Sent"] == "sent" and yf["Archive"] == "archive", yf
+    yr = wait(app.api("messages", {"id": y["id"], "folder": "INBOX"})["job"])
+    r = wait(app.api("delete", {"id": y["id"], "folder": "INBOX", "uids": [yr["messages"][0]["uid"]],
+                                "uidvalidity": yr["uidvalidity"]})["job"])
+    assert r == {"count": 1, "trash": "Trash"}, r
     print("OK: totes les proves del motor han passat")
 
 

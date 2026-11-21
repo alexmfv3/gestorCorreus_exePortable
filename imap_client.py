@@ -18,9 +18,11 @@ OP_CHUNK = 500
 
 TRASH_NAMES = {"trash", "paperera", "papelera", "deleted items", "deleted messages",
                "elementos eliminados", "elements suprimits", "corbeille", "bin"}
-SPAM_NAMES = {"spam", "junk", "correu brossa", "correo no deseado", "junk e-mail", "junk email"}
+SPAM_NAMES = {"spam", "junk", "correu brossa", "correo no deseado", "junk e-mail", "junk email",
+              "bulk", "bulk mail"}
 SENT_NAMES = {"sent", "enviats", "enviados", "sent items", "sent messages", "elementos enviados"}
-DRAFT_NAMES = {"drafts", "esborranys", "borradores"}
+DRAFT_NAMES = {"drafts", "draft", "esborranys", "borradores"}
+ARCHIVE_NAMES = {"archive", "archived", "arxiu", "archivo"}
 
 
 class MailError(Exception):
@@ -159,6 +161,8 @@ def classify(folder):
         return "sent"
     if low in DRAFT_NAMES:
         return "drafts"
+    if low in ARCHIVE_NAMES:
+        return "archive"
     return ""
 
 
@@ -265,13 +269,16 @@ class MailSession:
         except (socket.gaierror, ConnectionRefusedError, TimeoutError, socket.timeout, OSError) as e:
             raise MailError(f"No s'ha pogut connectar a {host}:{port} ({e})")
         try:
-            pw = self.password.replace(" ", "") if c.get("type") == "gmail" else self.password
+            # les contrasenyes d'aplicació de Gmail/Yahoo es mostren amb espais
+            pw = self.password.replace(" ", "") if c.get("type") in ("gmail", "yahoo") else self.password
             im.login(c.get("username") or c.get("email"), pw)
         except imaplib.IMAP4.error as e:
             msg = e.args[0].decode(errors="replace") if e.args and isinstance(e.args[0], bytes) else str(e)
             hint = ""
             if c.get("type") == "gmail":
                 hint = " A Gmail cal fer servir una «contrasenya d'aplicació» (vegeu Com connectar-lo)."
+            elif c.get("type") == "yahoo":
+                hint = " A Yahoo cal fer servir una «contrasenya d'aplicació» (vegeu Com connectar-lo)."
             raise MailError(f"Usuari o contrasenya incorrectes: {msg}.{hint}")
         typ, dat = im.capability()
         self.caps = set(dat[0].decode().upper().split()) if dat and dat[0] else set()

@@ -155,15 +155,19 @@ def public(acc):
     return d
 
 
-GMAIL = {"imap_host": "imap.gmail.com", "imap_port": 993, "imap_security": "ssl",
-         "smtp_host": "smtp.gmail.com", "smtp_port": 465, "smtp_security": "ssl"}
+PRESETS = {
+    "gmail": {"imap_host": "imap.gmail.com", "imap_port": 993, "imap_security": "ssl",
+              "smtp_host": "smtp.gmail.com", "smtp_port": 465, "smtp_security": "ssl"},
+    "yahoo": {"imap_host": "imap.mail.yahoo.com", "imap_port": 993, "imap_security": "ssl",
+              "smtp_host": "smtp.mail.yahoo.com", "smtp_port": 465, "smtp_security": "ssl"},
+}
 
 
 def normalize(a):
     acc = {k: a.get(k) for k in PUBLIC_FIELDS if k in a}
-    acc["type"] = "gmail" if a.get("type") == "gmail" else "roundcube"
-    if acc["type"] == "gmail":
-        acc.update(GMAIL)
+    acc["type"] = a.get("type") if a.get("type") in PRESETS else "roundcube"
+    if acc["type"] in PRESETS:
+        acc.update(PRESETS[acc["type"]])
     acc["email"] = (acc.get("email") or "").strip()
     acc["username"] = (acc.get("username") or acc["email"]).strip()
     acc["label"] = (acc.get("label") or acc["email"]).strip()

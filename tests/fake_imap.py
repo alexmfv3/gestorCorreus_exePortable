@@ -11,12 +11,15 @@ class FakeIMAP:
     error = ic.imaplib.IMAP4.error
     abort = ic.imaplib.IMAP4.abort
 
-    def __init__(self, gmail=False):
+    def __init__(self, gmail=False, yahoo=False):
         random.seed(4)
         self.gmail = gmail
         self.flags = {"INBOX": [], "Sent": ["\\Sent"], "Trash": ["\\Trash"], "Spam": ["\\Junk"],
                       "Feina": [], "Factures": [], "Factures/2026": [], "Però": []}
-        if gmail:
+        if yahoo:
+            self.flags = {"INBOX": [], "Sent": [], "Draft": [], "Archive": [], "Bulk": [], "Trash": [],
+                          "Feina": [], "Feina/Ofertes": []}
+        elif gmail:
             self.flags = {"INBOX": [], "[Gmail]": ["\\Noselect"], "[Gmail]/Tots els correus": ["\\All"],
                           "[Gmail]/Paperera": ["\\Trash"], "[Gmail]/Enviats": ["\\Sent"], "[Gmail]/Spam": ["\\Junk"],
                           "[Gmail]/Destacats": ["\\Flagged"], "Feina": [], "Feina/Ofertes": []}
@@ -221,5 +224,5 @@ _shared = {}
 def factory(cfg):
     key = cfg.get("email")
     if key not in _shared:
-        _shared[key] = FakeIMAP(cfg.get("type") == "gmail")
+        _shared[key] = FakeIMAP(cfg.get("type") == "gmail", cfg.get("type") == "yahoo")
     return _shared[key]

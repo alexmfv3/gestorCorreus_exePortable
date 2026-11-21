@@ -1,7 +1,7 @@
 # Gestor de Correus
 
 Programa d'escriptori per netejar i organitzar comptes de correu per IMAP
-(servidors amb Roundcube i Gmail). Tots els canvis s'apliquen directament al servidor.
+(servidors amb Roundcube, Gmail i Yahoo). Tots els canvis s'apliquen directament al servidor.
 
 ## Descarregar (sense Python)
 Ves a **Releases → «Gestor de Correus (última versió)»** i baixa `GestorCorreus.exe`.
@@ -17,7 +17,7 @@ Ves a **Releases → «Gestor de Correus (última versió)»** i baixa `GestorCo
 Cada `push` a `main` torna a compilar l'`.exe` automàticament (GitHub Actions).
 
 ## Què fa
-- **Comptes**: tants com vulguis, Roundcube (IMAP/SMTP) o Gmail. Pots desar la
+- **Comptes**: tants com vulguis, Roundcube (IMAP/SMTP), Gmail o Yahoo. Pots desar la
   contrasenya o que te la demani cada cop.
 - **Correus**: arbre de carpetes plegable a l'esquerra (amb cercador). Cerca per
   nom o adreça del remitent, selecciona'ls tots i elimina'ls o mou-los. Pots
