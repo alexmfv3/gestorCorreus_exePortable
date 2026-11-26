@@ -67,6 +67,23 @@ def main():
     r = wait(app.api("delete", {"id": y["id"], "folder": "INBOX", "uids": [yr["messages"][0]["uid"]],
                                 "uidvalidity": yr["uidvalidity"]})["job"])
     assert r == {"count": 1, "trash": "Trash"}, r
+    # Migració: GENCAT (amb subcarpetes) -> servidor amb prefix «INBOX.» i delimitador «.»
+    import shutil
+    import zipfile
+    dst = app.api("account_save", {"account": {"type": "roundcube", "email": "courier@altre.cat", "imap_host": "m",
+                                               "save_password": True}, "password": "secret"})["account"]
+    app.api("connect", {"id": dst["id"]})
+    ex = wait(app.api("export", {"id": acc["id"], "folder": "GENCAT", "subfolders": True})["job"])
+    assert ex["folders"] == 4 and ex["messages"] == 9, ex
+    with zipfile.ZipFile(ex["path"]) as z:
+        assert "correus/GENCAT/TSOC/Expedients/000002.eml" in z.namelist()
+    shutil.copy(ex["path"], os.path.join(app.uploads_dir(), "t.zip"))
+    imp = wait(app.api("import", {"id": dst["id"], "upload": "t.zip"})["job"])
+    assert imp["imported"] == 9 and "INBOX.GENCAT.TSOC.Expedients" in imp["created"], imp
+    fc = fake_imap._shared["courier@altre.cat"]
+    assert len(fc.boxes["INBOX.GENCAT.TSOC"]) == 4 and len(fc.boxes["INBOX.GENCAT.TSOC.Expedients"]) == 2
+    again = wait(app.api("import", {"id": dst["id"], "upload": "t.zip"})["job"])
+    assert again["imported"] == 0 and again["skipped"] == 9, again
     print("OK: totes les proves del motor han passat")
 
 

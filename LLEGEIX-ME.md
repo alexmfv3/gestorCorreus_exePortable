@@ -26,6 +26,12 @@ Cada `push` a `main` torna a compilar l'`.exe` automàticament (GitHub Actions).
   (p. ex. tot `infojobs.net`), i elimina'ls o mou-los tots d'un cop.
 - **Carpetes**: arbre amb subcarpetes; crea, crea subcarpetes, reanomena,
   elimina i buida la paperera.
+- **Migració**: exporta una carpeta (amb totes les subcarpetes) o tot el compte a un
+  `.zip`, i importa'l a un altre compte. Les carpetes que falten es creen soles
+  (p. ex. GENCAT › TSOC) i cada correu va al seu lloc, amb la data original i el
+  marcador de llegit. Si importes dues vegades, no duplica correus (Message-ID).
+  El `.zip` conté un `.eml` per correu, que també es pot obrir amb Outlook o Thunderbird.
+  Les exportacions es desen a `GestorCorreus_dades\Exportacions`.
 - **Informació**: espai lliure del compte (o «Il·limitat» si el servidor no té límit).
 
 ## Desenvolupament

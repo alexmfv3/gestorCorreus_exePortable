@@ -16,6 +16,7 @@ import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import migration
 from imap_client import MailError, MailSession, test_smtp
 
 APP_NAME = "Gestor de Correus"
@@ -52,6 +53,46 @@ def config_dir():
 
 
 CONFIG = os.path.join(config_dir(), "comptes.json")
+
+
+def exports_dir():
+    d = os.path.join(config_dir(), "Exportacions")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def uploads_dir():
+    d = os.path.join(config_dir(), "tmp")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def clean_uploads():
+    for f in os.listdir(uploads_dir()):
+        try:
+            os.remove(os.path.join(uploads_dir(), f))
+        except OSError:
+            pass
+
+
+def safe_name(s):
+    import re as _re
+    return _re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", s).strip(" ._")[:60] or "correu"
+
+
+def open_path(path, select=False):
+    try:
+        if os.name == "nt":
+            if select:
+                subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
+            else:
+                os.startfile(path)  # noqa
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", "-R" if select else "", path])
+        else:
+            subprocess.Popen(["xdg-open", os.path.dirname(path) if select else path])
+    except Exception as e:  # noqa
+        raise MailError(f"No s'ha pogut obrir la carpeta: {e}")
 cfg_lock = threading.Lock()
 
 
@@ -221,11 +262,14 @@ class NeedPassword(Exception):
 
 def start_job(fn):
     jid = uuid.uuid4().hex
-    job = {"status": "running", "done": 0, "total": 0, "result": None, "error": None}
+    job = {"status": "running", "done": 0, "total": 0, "result": None, "error": None, "label": None, "cancel": False}
     jobs[jid] = job
 
-    def progress(d, t):
+    def progress(d, t, label=None):
         job["done"], job["total"] = d, t
+        if label:
+            job["label"] = label
+    progress.cancelled = lambda: job["cancel"]
 
     def run():
         try:
@@ -233,6 +277,8 @@ def start_job(fn):
             job["status"] = "done"
         except NeedPassword:
             job["status"], job["error"] = "error", "need_password"
+        except migration.Cancelled:
+            job["status"], job["error"] = "error", "Cancel·lat. No s'ha acabat l'operació."
         except MailError as e:
             job["status"], job["error"] = "error", str(e)
         except Exception as e:  # noqa
@@ -341,6 +387,8 @@ def api(action, p):
             raise MailError("El nom no pot estar buit.")
         if p.get("parent"):
             name = p["parent"] + s.delimiter() + name
+        else:
+            name = s.root_name(name)
         s.create_folder(name)
         return {"folders": s.list_folders(), "name": name}
 
@@ -391,6 +439,53 @@ def api(action, p):
         info["trash"] = s.trash_folder()
         return info
 
+    if action == "export":
+        s = get_session(p["id"])
+        acc = get_acc(p["id"])
+        root = p.get("folder") or None
+        label = root.split(next((f["delim"] for f in s.folders if f["name"] == root and f["delim"]), "/"))[-1] \
+            if root else "tot-el-compte"
+        fname = f"{safe_name(acc['email'].split('@')[0])}_{safe_name(label)}_{time.strftime('%Y-%m-%d_%H%M')}.zip"
+        path = os.path.join(exports_dir(), fname)
+        return start_job(lambda pr: migration.export(s, acc, root, p.get("subfolders", True), path, pr))
+
+    if action == "exports":
+        d = exports_dir()
+        items = []
+        for f in sorted(os.listdir(d), key=lambda x: os.path.getmtime(os.path.join(d, x)), reverse=True):
+            if f.endswith(".zip"):
+                st = os.stat(os.path.join(d, f))
+                items.append({"file": f, "size": st.st_size, "mtime": st.st_mtime})
+        return {"dir": d, "files": items[:30]}
+
+    if action == "open_exports":
+        f = p.get("file")
+        path = os.path.join(exports_dir(), os.path.basename(f)) if f else exports_dir()
+        open_path(path, select=bool(f))
+        return {}
+
+    if action == "import_plan":
+        s = get_session(p["id"])
+        up = os.path.join(uploads_dir(), os.path.basename(p["upload"]))
+        m = migration.read_manifest(up)
+        plan, _ = migration.plan_import(s, m, p.get("parent") or "")
+        names = {f["name"] for f in s.folders}
+        return {"plan": [{"path": e["path"], "target": t, "count": len(e["messages"]), "exists": t in names or t.upper() == "INBOX"}
+                         for e, t in plan]}
+
+    if action == "import":
+        s = get_session(p["id"])
+        up = os.path.join(uploads_dir(), os.path.basename(p["upload"]))
+        if not os.path.exists(up):
+            raise MailError("El fitxer ja no hi és. Torna'l a triar.")
+        return start_job(lambda pr: migration.do_import(s, up, p.get("parent") or "", p.get("dedupe", True), pr))
+
+    if action == "job_cancel":
+        j = jobs.get(p["job"])
+        if j:
+            j["cancel"] = True
+        return {}
+
     if action == "job":
         j = jobs.get(p["job"])
         if not j:
@@ -429,7 +524,22 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self._host_ok():
             return self._send(403, {"error": "forbidden"})
-        path = self.path.split("?")[0]
+        path, _, qs = self.path.partition("?")
+        if path.startswith("/download/"):
+            from urllib.parse import parse_qs, unquote
+            if parse_qs(qs).get("t", [""])[0] != TOKEN:
+                return self._send(403, {"error": "forbidden"})
+            f = os.path.join(exports_dir(), os.path.basename(unquote(path[len("/download/"):])))
+            if not os.path.isfile(f):
+                return self._send(404, {"error": "not found"})
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Length", str(os.path.getsize(f)))
+            self.send_header("Content-Disposition", f'attachment; filename="{os.path.basename(f)}"')
+            self.end_headers()
+            with open(f, "rb") as fh:
+                shutil.copyfileobj(fh, self.wfile, 1024 * 1024)
+            return
         if path in ("/", "/index.html"):
             with open(os.path.join(BASE, "ui", "index.html"), encoding="utf-8") as f:
                 html = f.read().replace("__TOKEN__", TOKEN)
@@ -441,6 +551,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(403, {"error": "forbidden"})
         last_ping[0] = time.time()
         action = self.path.strip("/").split("/")[-1]
+        if action == "upload":
+            return self._upload()
         try:
             n = int(self.headers.get("Content-Length") or 0)
             p = json.loads(self.rfile.read(n) or b"{}")
@@ -454,6 +566,32 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": False, "error": str(e)})
         except Exception as e:  # noqa
             return self._send(200, {"ok": False, "error": f"Error inesperat: {e}"})
+
+
+def _upload(self):
+    n = int(self.headers.get("Content-Length") or 0)
+    up = uuid.uuid4().hex + ".zip"
+    dest = os.path.join(uploads_dir(), up)
+    try:
+        with open(dest, "wb") as fh:
+            left = n
+            while left > 0:
+                b = self.rfile.read(min(1024 * 1024, left))
+                if not b:
+                    break
+                fh.write(b)
+                left -= len(b)
+        m = migration.read_manifest(dest)
+        return self._send(200, {"ok": True, "upload": up, **migration.summary(m)})
+    except MailError as e:
+        try:
+            os.remove(dest)
+        except OSError:
+            pass
+        return self._send(200, {"ok": False, "error": str(e)})
+
+
+Handler._upload = _upload
 
 
 def find_app_browser():
@@ -473,6 +611,7 @@ def find_app_browser():
 
 def main():
     port = int(os.environ.get("GESTOR_PORT", "0"))
+    clean_uploads()
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{srv.server_address[1]}/"
     threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -485,6 +624,8 @@ def main():
     if not os.environ.get("GESTOR_BROWSER"):
         try:
             import webview  # pywebview: finestra pròpia amb WebView2
+            if hasattr(webview, "settings"):
+                webview.settings["ALLOW_DOWNLOADS"] = True
             webview.create_window(APP_NAME, url, width=1440, height=920, min_size=(1100, 700))
             webview.start()
             return

@@ -11,12 +11,16 @@ class FakeIMAP:
     error = ic.imaplib.IMAP4.error
     abort = ic.imaplib.IMAP4.abort
 
-    def __init__(self, gmail=False, yahoo=False):
+    def __init__(self, gmail=False, yahoo=False, courier=False):
         random.seed(4)
         self.gmail = gmail
+        self.courier = courier
+        self.d = "." if courier else "/"
         self.flags = {"INBOX": [], "Sent": ["\\Sent"], "Trash": ["\\Trash"], "Spam": ["\\Junk"],
                       "Feina": [], "Factures": [], "Factures/2026": [], "Però": []}
-        if yahoo:
+        if courier:  # com Courier/Dovecot antic: tot penja d'«INBOX.» i el delimitador és «.»
+            self.flags = {"INBOX": [], "INBOX.Sent": ["\\Sent"], "INBOX.Trash": ["\\Trash"], "INBOX.Feina": []}
+        elif yahoo:
             self.flags = {"INBOX": [], "Sent": [], "Draft": [], "Archive": [], "Bulk": [], "Trash": [],
                           "Feina": [], "Feina/Ofertes": []}
         elif gmail:
@@ -34,6 +38,8 @@ class FakeIMAP:
             self.flags["Projectes/P01/Documentació"] = []
             self.flags["Projectes/P01/Reunions"] = []
             self.flags["Factures/2025"] = []
+            for k in ("GENCAT", "GENCAT/TSOC", "GENCAT/TSOC/Expedients", "GENCAT/Altres"):
+                self.flags[k] = []
         self.boxes = {k: {} for k in self.flags}
         self.next_uid = {k: 1 for k in self.flags}
         self.sel = None
@@ -53,15 +59,25 @@ class FakeIMAP:
         for i in range(1300):
             self._add("INBOX", f"Persona {i%250}", f"p{i%250}@exemple.cat", f"Missatge {i}",
                       now - timedelta(hours=random.randint(1, 9000)), True)
+        if courier:
+            return
         for i in range(5):
             self._add("[Gmail]/Paperera" if gmail else "Trash", "Vell", "vell@x.com", f"Esborrat {i}", now, True)
+        if not gmail and not yahoo:
+            for box, n in (("GENCAT", 3), ("GENCAT/TSOC", 4), ("GENCAT/TSOC/Expedients", 2)):
+                for i in range(n):
+                    self._add(box, "Generalitat", "noreply@gencat.cat", f"{box.split('/')[-1]}: comunicació {i+1}",
+                              now - timedelta(days=i + 1), i % 2 == 0)
 
     def _add(self, box, name, addr, subj, dt, seen):
         uid = self.next_uid[box]
         self.next_uid[box] += 1
         frm = f"{Header(name, 'utf-8').encode()} <{addr}>"
-        hdr = f"From: {frm}\r\nSubject: {Header(subj, 'utf-8').encode()}\r\nDate: {dt:%a, %d %b %Y %H:%M:%S +0000}\r\n\r\n"
-        self.boxes[box][uid] = {"hdr": hdr.encode(), "dt": dt, "size": random.randint(3000, 400000),
+        mid = f"<{abs(hash((box, uid, subj))) % 10**12}.{uid}@fake.test>"
+        hdr = (f"From: {frm}\r\nSubject: {Header(subj, 'utf-8').encode()}\r\nDate: {dt:%a, %d %b %Y %H:%M:%S +0000}\r\n"
+               f"Message-ID: {mid}\r\n\r\n")
+        raw = hdr.encode() + f"Hola,\r\naixò és el cos de «{subj}». Adéu!\r\n".encode()
+        self.boxes[box][uid] = {"hdr": hdr.encode(), "raw": raw, "dt": dt, "size": random.randint(3000, 400000),
                                 "flags": {"\\Seen"} if seen else set()}
 
     @staticmethod
@@ -91,7 +107,23 @@ class FakeIMAP:
         return "OK", [b"Logged in"]
 
     def capability(self):
-        return "OK", [b"IMAP4rev1 UIDPLUS MOVE QUOTA SPECIAL-USE IDLE"]
+        return "OK", [b"IMAP4rev1 UIDPLUS MOVE QUOTA SPECIAL-USE IDLE NAMESPACE"]
+
+    def namespace(self):
+        return "OK", [b'(("INBOX." ".")) NIL NIL' if self.courier else b'(("" "/")) NIL NIL']
+
+    def append(self, mailbox, flags, date_time, message):
+        n = self._unq(mailbox)
+        if n not in self.boxes:
+            return "NO", [b"[TRYCREATE] Mailbox doesn't exist"]
+        raw = bytes(message)
+        hdr = raw.split(b"\r\n\r\n", 1)[0] + b"\r\n\r\n"
+        dt = datetime.strptime(date_time.strip('"'), "%d-%b-%Y %H:%M:%S %z") if date_time else datetime.now(timezone.utc)
+        uid = self.next_uid[n]
+        self.next_uid[n] += 1
+        self.boxes[n][uid] = {"hdr": hdr, "raw": raw, "dt": dt, "size": len(raw),
+                              "flags": set(re.findall(r"\\\w+", flags or ""))}
+        return "OK", [f"[APPENDUID 1 {uid}] Append completed".encode()]
 
     def noop(self):
         return "OK", [b""]
@@ -103,11 +135,11 @@ class FakeIMAP:
         out = []
         for k, fl in self.flags.items():
             enc = ic.imap_utf7_encode(k)
-            kids = any(o.startswith(k + "/") for o in self.flags)
+            kids = any(o.startswith(k + self.d) for o in self.flags)
             if "\\Noselect" in fl:
-                out.append(f'(\\HasChildren \\Noselect) "/" "{enc}"'.encode()); continue
+                out.append(f'(\\HasChildren \\Noselect) "{self.d}" "{enc}"'.encode()); continue
             f = " ".join(["\\HasChildren" if kids else "\\HasNoChildren"] + fl)
-            out.append(f'({f}) "/" "{enc}"'.encode() if k != "Feina" else f'({f}) "/" {enc}'.encode())
+            out.append(f'({f}) "{self.d}" "{enc}"'.encode() if k != "Feina" else f'({f}) "{self.d}" {enc}'.encode())
         return "OK", out
 
     def status(self, name, items):
@@ -141,13 +173,15 @@ class FakeIMAP:
     def create(self, name):
         n = self._unq(name)
         if n in self.flags:
-            return "NO", [b"Mailbox already exists"]
+            return "NO", [b"[ALREADYEXISTS] Mailbox already exists"]
+        if self.courier and not n.startswith("INBOX."):
+            return "NO", [b"[CANNOT] Invalid mailbox name"]
         self.flags[n], self.boxes[n], self.next_uid[n] = [], {}, 1
         return "OK", [b""]
 
     def rename(self, a, b):
         a, b = self._unq(a), self._unq(b)
-        for k in [k for k in self.flags if k == a or k.startswith(a + "/")]:
+        for k in [k for k in self.flags if k == a or k.startswith(a + self.d)]:
             nk = b + k[len(a):]
             self.flags[nk] = self.flags.pop(k)
             self.boxes[nk] = self.boxes.pop(k)
@@ -156,7 +190,7 @@ class FakeIMAP:
 
     def delete(self, name):
         n = self._unq(name)
-        if any(k.startswith(n + "/") for k in self.flags):
+        if any(k.startswith(n + self.d) for k in self.flags):
             return "NO", [b"Mailbox has children"]
         for d in (self.flags, self.boxes, self.next_uid):
             d.pop(n, None)
@@ -178,8 +212,24 @@ class FakeIMAP:
             return "OK", [" ".join(map(str, sorted(b))).encode()]
         if cmd == "FETCH":
             out = []
+            what = args[1].upper()
             for i, u in enumerate(self._uids(args[0])):
                 m = b[u]
+                if "BODY.PEEK[]" in what:
+                    d = m["dt"].strftime("%d-%b-%Y %H:%M:%S +0000")
+                    out.append((f'{i+1} (UID {u} FLAGS ({" ".join(sorted(m["flags"]))}) INTERNALDATE "{d}" '
+                                f'BODY[] {{{len(m["raw"])}}}'.encode(), m["raw"]))
+                    out.append(b")")
+                    continue
+                if "MESSAGE-ID" in what:
+                    h = re.search(rb"Message-ID: [^\r]+\r\n", m["hdr"])
+                    h = (h.group(0) if h else b"") + b"\r\n"
+                    out.append((f'{i+1} (UID {u} BODY[HEADER.FIELDS (MESSAGE-ID)] {{{len(h)}}}'.encode(), h))
+                    out.append(b")")
+                    continue
+                if "BODY" not in what:
+                    out.append(f'{i+1} (UID {u} RFC822.SIZE {m["size"]})'.encode())
+                    continue
                 fl = " ".join(sorted(m["flags"]))
                 d = m["dt"].strftime("%d-%b-%Y %H:%M:%S +0000")
                 if u % 3 == 0:  # FLAGS després del literal (com Gmail)
@@ -224,5 +274,5 @@ _shared = {}
 def factory(cfg):
     key = cfg.get("email")
     if key not in _shared:
-        _shared[key] = FakeIMAP(cfg.get("type") == "gmail", cfg.get("type") == "yahoo")
+        _shared[key] = FakeIMAP(cfg.get("type") == "gmail", cfg.get("type") == "yahoo", "courier" in (key or ""))
     return _shared[key]

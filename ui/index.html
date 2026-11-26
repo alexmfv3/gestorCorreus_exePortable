@@ -266,6 +266,29 @@ a{color:var(--accent)}
 .ib.red{color:var(--red)} .ib.red:hover{border-color:var(--red);background:var(--red-soft);color:var(--red)}
 .ib.ghost{visibility:hidden}
 .macts{display:flex;gap:6px;justify-content:flex-end}
+.mig{padding:28px 30px;display:flex;flex-direction:column;gap:4px}
+.mig h2{margin:0;font-size:22px}
+.mig .hd{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.dropz{display:block;border:2px dashed var(--accent-line);border-radius:18px;background:#fbfaff;padding:30px 20px;text-align:center;cursor:pointer;color:var(--muted);transition:.12s}
+.dropz:hover,.dropz.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.dropz svg{color:var(--accent);margin:0 auto 6px;display:block}
+.dropz b{color:var(--ink);display:block;font-size:16px;margin-bottom:2px}
+.ftree{border:1.5px solid var(--line);border-radius:14px;max-height:260px;overflow:auto;padding:6px 0;margin:6px 0 12px}
+.ftree div{display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:14px}
+.ftree div svg{color:var(--accent)}
+.ftree .c{margin-left:auto;color:var(--muted);font-size:12.5px;font-weight:600}
+.ftree .arrow{color:var(--faint)}
+.ftree .prow{display:grid;grid-template-columns:minmax(80px,1fr) 44px 14px minmax(0,1.5fr) 74px;gap:8px;align-items:center}
+.ftree .prow .nm{display:flex;align-items:center;gap:8px;min-width:0;padding:0}
+.ftree .prow .c{margin:0;text-align:right}
+.ftree .prow .pill{white-space:nowrap;justify-self:end}
+.ftree .tgt{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftree .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xlist{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.xlist div{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line2);font-size:14px}
+.xlist div:last-child{border-bottom:0}
+.xlist span.n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xlist span.m{color:var(--muted);font-size:12.5px;white-space:nowrap}
 .split .toolbar{gap:10px}
 .split .search{min-width:200px}
 .split select.sel{max-width:170px}
@@ -321,6 +344,9 @@ const P = {
   eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
   plug:'<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
   read:'<path d="M3 9.5 12 4l9 5.5V19a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19z"/><path d="m3 10 9 6 9-6"/>',
+  migrate:'<path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/>',
+  upload:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
+  download:'<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
   chev:'<path d="m9 6 6 6-6 6"/>',
   sub:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M12 10.5v6M9 13.5h6"/>',
   infinity:'<path d="M7 8.5a3.5 3.5 0 1 0 0 7c3 0 7-7 10-7a3.5 3.5 0 1 1 0 7c-3 0-7-7-10-7z"/>',
@@ -366,14 +392,14 @@ async function acall(action, payload = {}) {           // amb petició de contra
     return await call(action, payload);
   }
 }
-async function runJob(action, payload, label) {
+async function runJob(action, payload, label, cancellable = false) {
   const start = await acall(action, payload);
-  const ov = progressBox(label);
+  const ov = progressBox(label, cancellable ? () => call("job_cancel", {job: start.job}).catch(() => {}) : null);
   try {
     while (true) {
-      await new Promise(r => setTimeout(r, 250));
+      await new Promise(r => setTimeout(r, 300));
       const j = await call("job", {job: start.job});
-      ov.update(j.done, j.total);
+      ov.update(j.done, j.total, j.label);
       if (j.status === "done") return j.result;
       if (j.status === "error") throw new Error(j.error);
     }
@@ -555,12 +581,16 @@ function promptBox({title, lead = "", label, value = "", ok = "Desa", extra = ""
     inp.onkeydown = e => { if (e.key === "Enter") go(); };
   });
 }
-function progressBox(label) {
-  const ov = modal(`<h2 style="font-size:22px">${esc(label)}</h2><div class="prog ind"><i></i></div><div class="lead" id="pl" style="margin:0">Connectant amb el servidor…</div>`);
+function progressBox(label, onCancel) {
+  const ov = modal(`<h2 style="font-size:22px">${esc(label)}</h2><div class="prog ind"><i></i></div>
+    <div class="lead" id="pl" style="margin:0">Connectant amb el servidor…</div><div id="pl2" style="color:var(--faint);font-size:13.5px;margin-top:4px"></div>
+    ${onCancel ? `<div class="foot" style="margin-top:16px"><button class="btn" id="pcancel">Cancel·la</button></div>` : ""}`);
   ov.dataset.lock = 1;
+  if (onCancel) $("#pcancel", ov).onclick = () => { onCancel(); $("#pcancel", ov).disabled = true; $("#pcancel", ov).textContent = "Cancel·lant…"; };
   return {
-    update(d, t) {
-      if (!t) return;
+    update(d, t, lab) {
+      if (lab) $("#pl2", ov).textContent = lab;
+      if (!t) { if (lab) $("#pl", ov).textContent = ""; return; }
       $(".prog", ov).classList.remove("ind");
       $(".prog i", ov).style.width = Math.round(d / t * 100) + "%";
       $("#pl", ov).textContent = `${fmtN(d)} de ${fmtN(t)}`;
@@ -694,7 +724,7 @@ async function doSeen(uids, folder = curFolder()) {
 }
 
 /* ---------------------------------------------------------------- shell */
-const NAV1 = [["correus","mail","Correus"],["carpetes","folder","Carpetes"],["remitents","users","Remitents"],["informacio","info","Informació"]];
+const NAV1 = [["correus","mail","Correus"],["carpetes","folder","Carpetes"],["remitents","users","Remitents"],["informacio","info","Informació"],["migracio","migrate","Migració"]];
 const NAV2 = [["comptes","settings","Comptes"]];
 const NAV3 = [["ajuda","help","Com connectar-lo"]];
 function renderShell() {
@@ -731,7 +761,7 @@ async function render() {
   const m = $("#main");
   $(".bulk")?.remove();
   if (!S.accounts.length && S.page !== "ajuda") return renderWelcome(m);
-  const pages = {correus: pageCorreus, carpetes: pageCarpetes, remitents: pageRemitents, informacio: pageInfo, comptes: pageComptes, ajuda: pageAjuda};
+  const pages = {correus: pageCorreus, carpetes: pageCarpetes, remitents: pageRemitents, informacio: pageInfo, migracio: pageMigracio, comptes: pageComptes, ajuda: pageAjuda};
   await (pages[S.page] || pageCorreus)(m);
 }
 
@@ -1189,6 +1219,152 @@ async function pageInfo(m) {
     </tbody></table></div>
     ${knownSize == null ? `<p style="color:var(--faint);font-size:13px;margin-top:12px">La mida per carpeta apareix quan l'has obert a «Correus» (el servidor no la dona directament).</p>` : ""}`;
   bindAccBar();
+}
+
+/* ============================================================ MIGRACIÓ */
+S.mig = {folder: null, sub: true, upload: null, info: null, parent: "", dedupe: true, plan: null, last: null};
+function exportSet(root, sub) {
+  const fl = (S.folders[S.cur] || []);
+  if (!root) return fl.filter(f => f.selectable && !["all", "flagged", "important"].includes(f.special));
+  const r = folderObj(root); if (!r) return [];
+  return fl.filter(f => f.name === root || (sub && r.delim && f.name.startsWith(root + r.delim)));
+}
+const dlUrl = f => `/download/${encodeURIComponent(f)}?t=${encodeURIComponent(TOKEN)}`;
+
+async function pageMigracio(m) {
+  if (!await connectGate(m, "Migració de correu", "")) return;
+  const a = acc(), M = S.mig;
+  if (M.folder === null || (M.folder && !folderObj(M.folder))) M.folder = curFolder();
+  m.innerHTML = accBar() + `
+    <h1>Migració de correu</h1>
+    <p class="sub">Exporta una carpeta amb totes les seves subcarpetes a un fitxer i importa-la a un altre compte. L'estructura de carpetes es crea sola i cada correu va al seu lloc.</p>
+    <div class="cards2" style="align-items:start">
+      <div class="card mig">
+        <div class="hd"><div class="fbtn">${ic("download", 24)}</div><div><h2>Exporta</h2><span style="color:var(--muted)">des de <b>${esc(a.label)}</b> (${esc(a.email)})</span></div></div>
+        <div class="fld"><label>Carpeta a exportar</label><select id="xf"><option value="">Tot el compte</option>${treeOptions(M.folder, {root: false})}</select></div>
+        <label class="chk" style="margin-bottom:12px"><input type="checkbox" id="xsub" ${M.sub ? "checked" : ""}> Inclou totes les subcarpetes</label>
+        <div id="xprev"></div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px"><button class="btn pri" id="xgo">${ic("download", 19)} Exporta</button>
+          <span class="spacer"></span><button class="btn sm" id="xopen">${ic("folder", 17)} Carpeta d'exportacions</button></div>
+        <div id="xres"></div>
+        <div class="sect" style="margin-top:22px">EXPORTACIONS ANTERIORS</div><div class="xlist" id="xlist"><div style="color:var(--muted)">Carregant…</div></div>
+      </div>
+      <div class="card mig">
+        <div class="hd"><div class="fbtn">${ic("upload", 24)}</div><div><h2>Importa</h2><span style="color:var(--muted)">a <b>${esc(a.label)}</b> (${esc(a.email)})</span></div></div>
+        <div id="ibody"></div>
+      </div>
+    </div>`;
+  bindAccBar();
+  /* ---- exporta */
+  const xprev = () => {
+    const root = $("#xf").value || null;
+    $("#xsub").disabled = !root; $("#xsub").parentElement.style.opacity = root ? 1 : .5;
+    const set = exportSet(root, $("#xsub").checked);
+    const n = set.reduce((t, f) => t + (f.messages || 0), 0);
+    const rows = flatTree(buildTree(set).root, "", true);
+    $("#xprev").innerHTML = `<div style="font-size:14px;color:var(--ink2)">S'exportaran <b>${fmtN(set.length)} carpet${set.length === 1 ? "a" : "es"}</b> i <b>${nC(n)}</b>${set.some(f => f.size != null) ? ` (${fmtSize(set.reduce((t, f) => t + (f.size || 0), 0))})` : ""}:</div>
+      <div class="ftree">${rows.slice(0, 200).map(r => `<div style="padding-left:${14 + r.depth * 20}px">${r.n.folder ? fIcon(r.n.folder) : ic("folder", 20)}<span class="lbl">${esc(r.n.label)}</span><span class="c">${r.n.folder ? fmtN(r.n.folder.messages) : ""}</span></div>`).join("")}
+      ${rows.length > 200 ? `<div style="color:var(--muted)">… i ${rows.length - 200} més</div>` : ""}</div>
+      ${a.type === "gmail" && !root ? `<div class="note">A Gmail no s'exporten «Tots els correus», «Destacats» ni «Importants», perquè duplicarien els correus que ja són a les altres carpetes.</div>` : ""}`;
+  };
+  $("#xf").onchange = e => { M.folder = e.target.value; xprev(); };
+  $("#xsub").onchange = e => { M.sub = e.target.checked; xprev(); };
+  xprev();
+  const loadList = async () => {
+    try {
+      const r = await call("exports");
+      $("#xlist").innerHTML = r.files.length ? r.files.map(f => `<div>${ic("archive", 18)}<span class="n" title="${esc(f.file)}">${esc(f.file)}</span><span class="m">${fmtSize(f.size)} · ${fmtDate(f.mtime)}</span>
+          <button class="ib" data-open="${esc(f.file)}" title="Mostra a la carpeta">${ic("folder", 17)}</button><a class="ib" href="${dlUrl(f.file)}" download title="Descarrega">${ic("download", 17)}</a></div>`).join("")
+        : `<div style="color:var(--muted)">Encara no has fet cap exportació.</div>`;
+      $$("[data-open]", $("#xlist")).forEach(b => b.onclick = () => call("open_exports", {file: b.dataset.open}).catch(e => toast(e.message, 1)));
+    } catch (e) { $("#xlist").innerHTML = `<div>${esc(e.message)}</div>`; }
+  };
+  loadList();
+  $("#xopen").onclick = () => call("open_exports").catch(e => toast(e.message, 1));
+  $("#xgo").onclick = async () => {
+    const root = $("#xf").value;
+    try {
+      const r = await runJob("export", {id: a.id, folder: root, subfolders: $("#xsub").checked},
+        root ? `Exportant «${fname(folderObj(root))}»` : "Exportant tot el compte", true);
+      M.last = r;
+      $("#xres").innerHTML = `<div class="note ok" style="margin-top:14px">✓ Exportat <b>${esc(r.file)}</b> (${fmtSize(r.size)}): ${r.folders} carpet${r.folders === 1 ? "a" : "es"} i ${nC(r.messages)}.
+        <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="xshow">${ic("folder", 17)} Mostra a la carpeta</button><a class="btn sm" href="${dlUrl(r.file)}" download>${ic("download", 17)} Desa una còpia…</a></div></div>`;
+      $("#xshow").onclick = () => call("open_exports", {file: r.file}).catch(e => toast(e.message, 1));
+      loadList();
+    } catch (e) { toast(e.message, 1); }
+  };
+  /* ---- importa */
+  renderImport(a);
+}
+
+function renderImport(a) {
+  const M = S.mig, el = $("#ibody"); if (!el) return;
+  if (!M.upload) {
+    el.innerHTML = `<label class="dropz" id="drop">${ic("upload", 40, 1.6)}<b>Arrossega aquí el fitxer .zip exportat</b>o clica per triar-lo<input type="file" id="ifile" accept=".zip" hidden></label>
+      <div id="iup"></div>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:14px">Per migrar a un altre compte: exporta-ho, tria el compte de destinació a dalt (o afegeix-lo) i importa-hi el fitxer.</p>`;
+    const drop = $("#drop");
+    const take = f => { if (f) uploadFile(f, a); };
+    $("#ifile").onchange = e => take(e.target.files[0]);
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+    drop.ondragleave = () => drop.classList.remove("over");
+    drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); take(e.dataTransfer.files[0]); };
+    return;
+  }
+  const I = M.info;
+  el.innerHTML = `<div class="note" style="display:flex;align-items:center;gap:12px">${ic("archive", 22)}<div style="flex:1;min-width:0"><b>${esc(M.fileName)}</b><br>
+      <span style="color:var(--muted);font-size:13px">De ${esc(I.source.email || "?")}${I.created ? " · " + new Date(I.created).toLocaleString("ca-ES", {dateStyle: "short", timeStyle: "short"}) : ""} · ${I.folders.length} carpet${I.folders.length === 1 ? "a" : "es"} · ${nC(I.messages)}</span></div>
+      <button class="btn sm" id="ichg">Canvia</button></div>
+    <div class="fld"><label>On ho vols posar a ${esc(a.label)}?</label><select id="ipar"><option value="">A l'arrel del compte</option>${treeOptions(M.parent, {root: false, selectableOnly: false})}</select></div>
+    <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="idd" ${M.dedupe ? "checked" : ""}> No importis els correus que ja hi són (mateix Message-ID)</label>
+    <div style="font-size:14px;color:var(--ink2)">Així quedarà:</div>
+    <div class="ftree" id="iplan"><div style="color:var(--muted)">Calculant…</div></div>
+    <button class="btn pri" id="igo" style="align-self:flex-start">${ic("upload", 19)} Importa ${nC(I.messages)}</button>
+    <div id="ires"></div>`;
+  $("#ichg").onclick = () => { M.upload = null; M.info = null; renderImport(a); };
+  $("#ipar").onchange = e => { M.parent = e.target.value; loadPlan(a); };
+  $("#idd").onchange = e => { M.dedupe = e.target.checked; };
+  loadPlan(a);
+  $("#igo").onclick = async () => {
+    try {
+      const r = await runJob("import", {id: a.id, upload: M.upload, parent: M.parent, dedupe: M.dedupe}, `Important a ${a.label}`, true);
+      delete S.folders[a.id]; Object.keys(S.cache).filter(k => k.startsWith(a.id + "|")).forEach(k => delete S.cache[k]);
+      await ensureConnected().catch(() => {});
+      $("#ires").innerHTML = `<div class="note ${r.failed ? "warn" : "ok"}" style="margin-top:14px">✓ <b>${nC(r.imported)}</b> importat${r.imported === 1 ? "" : "s"}${r.skipped ? ` · ${fmtN(r.skipped)} ja hi eren (omesos)` : ""}${r.failed ? ` · <b>${fmtN(r.failed)} amb error</b>` : ""}.
+        ${r.created.length ? `<br>${r.created.length} carpet${r.created.length === 1 ? "a creada" : "es creades"}: ${r.created.map(c => esc(c.split((S.folders[a.id] || []).find(f => f.delim)?.delim || "/").pop())).join(", ")}` : "<br>No ha calgut crear cap carpeta."}
+        ${r.errors.length ? `<div style="margin-top:8px;font-size:13px">${r.errors.map(esc).join("<br>")}</div>` : ""}</div>`;
+      loadPlan(a); renderShell();
+    } catch (e) { toast(e.message, 1); }
+  };
+}
+async function loadPlan(a) {
+  const M = S.mig;
+  try {
+    const r = await acall("import_plan", {id: a.id, upload: M.upload, parent: M.parent});
+    if (!$("#iplan")) return;
+    const dl = (S.folders[a.id] || []).find(f => f.delim)?.delim || "/";
+    const nice = t => { const p = t.split(dl).map(x => x.toUpperCase() === "INBOX" ? "Safata d'entrada" : x); return (p.length > 3 ? "… › " + p.slice(-3).join(" › ") : p.join(" › ")); };
+    $("#iplan").innerHTML = r.plan.map(p => `<div class="prow" title="${esc(p.target)}">
+        <span class="nm" style="padding-left:${(p.path.length - 1) * 18}px">${ic("folder", 19)}<span class="lbl">${esc(p.path[p.path.length - 1])}</span></span>
+        <span class="c">${fmtN(p.count)}</span><span class="arrow">→</span><span class="tgt">${esc(nice(p.target))}</span>
+        <span class="pill nodot ${p.exists ? "grey" : "vio"}" style="font-size:11px;padding:2px 8px">${p.exists ? "ja existeix" : "nova"}</span></div>`).join("");
+  } catch (e) { if ($("#iplan")) $("#iplan").innerHTML = `<div style="color:var(--red)">${esc(e.message)}</div>`; }
+}
+function uploadFile(file, a) {
+  const M = S.mig;
+  if (!/\.zip$/i.test(file.name)) return toast("Tria un fitxer .zip exportat amb el Gestor de Correus.", 1);
+  $("#iup").innerHTML = `<div class="prog"><i style="width:0"></i></div><div style="color:var(--muted);font-size:13.5px" id="iupt">Carregant ${esc(file.name)}…</div>`;
+  const x = new XMLHttpRequest();
+  x.open("POST", "/api/upload"); x.setRequestHeader("X-Token", TOKEN);
+  x.upload.onprogress = e => { if (e.lengthComputable && $("#iup .prog i")) $("#iup .prog i").style.width = Math.round(e.loaded / e.total * 100) + "%"; };
+  x.onload = () => {
+    let r; try { r = JSON.parse(x.responseText); } catch (e) { r = {ok: false, error: "Resposta no vàlida"}; }
+    if (!r.ok) { $("#iup").innerHTML = `<div class="note err" style="margin-top:12px">${esc(r.error)}</div>`; return; }
+    M.upload = r.upload; M.info = r; M.fileName = file.name; M.parent = "";
+    renderImport(a);
+  };
+  x.onerror = () => { $("#iup").innerHTML = `<div class="note err" style="margin-top:12px">No s'ha pogut carregar el fitxer.</div>`; };
+  x.send(file);
 }
 
 /* ============================================================ COMPTES */

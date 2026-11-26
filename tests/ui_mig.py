@@ -1,0 +1,38 @@
+import asyncio, os, glob
+from playwright.async_api import async_playwright
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+        ctx = await b.new_context(viewport={"width":1600,"height":1100}, accept_downloads=True)
+        pg = await ctx.new_page()
+        errs=[]; pg.on("pageerror", lambda e: errs.append(str(e)))
+        await pg.goto("http://127.0.0.1:8765/"); await pg.wait_for_timeout(400)
+        for email,label in (("jo@empresa.cat","Feina"),("courier@altre.cat","Hosting antic")):
+            await (pg.locator("#w1") if await pg.locator("#w1").count() else pg.locator("#addacc")).click()
+            await pg.fill("#f_email",email); await pg.fill("#f_label",label); await pg.fill("#f_pw","secret")
+            await pg.click("#save"); await pg.wait_for_timeout(2200)
+        await pg.click('[data-acc]:has-text("Feina")'); await pg.wait_for_timeout(1500)
+        await pg.click('.nav[data-p="migracio"]'); await pg.wait_for_timeout(800)
+        await pg.select_option("#xf","GENCAT"); await pg.wait_for_timeout(200)
+        await pg.screenshot(path="/tmp/shots/50_mig_export.png")
+        await pg.click("#xgo"); await pg.wait_for_timeout(2500)
+        print("res:", await pg.locator("#xres").inner_text())
+        async with pg.expect_download() as d:
+            await pg.locator("#xres a").click()
+        dl = await d.value; path="/tmp/shots/GENCAT.zip"; await dl.save_as(path); print("descarregat:", os.path.getsize(path))
+        await pg.screenshot(path="/tmp/shots/51_mig_done.png")
+        await pg.click('[data-acc]:has-text("Hosting antic")'); await pg.wait_for_timeout(1500)
+        await pg.set_input_files("#ifile", path); await pg.wait_for_timeout(1500)
+        print("pla:", (await pg.locator("#iplan").inner_text()).replace("\n"," | "))
+        await pg.screenshot(path="/tmp/shots/52_mig_import.png")
+        await pg.select_option("#ipar","INBOX.Feina"); await pg.wait_for_timeout(800)
+        print("pla Feina:", (await pg.locator("#iplan").inner_text()).replace("\n"," | "))
+        await pg.click("#igo"); await pg.wait_for_timeout(3000)
+        print("import:", (await pg.locator("#ires").inner_text()).replace("\n"," | "))
+        await pg.screenshot(path="/tmp/shots/53_mig_imported.png")
+        await pg.click("#igo"); await pg.wait_for_timeout(3000)
+        print("2a vegada:", (await pg.locator("#ires").inner_text()).replace("\n"," | "))
+        await pg.click('.nav[data-p="carpetes"]'); await pg.wait_for_timeout(600); await pg.click("#expall"); await pg.wait_for_timeout(200)
+        await pg.screenshot(path="/tmp/shots/54_dest_tree.png")
+        print("ERRORS:", errs); await b.close()
+asyncio.run(main())

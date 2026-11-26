@@ -225,6 +225,15 @@ def parse_fetch(data):
     return out
 
 
+MSGID_RE = re.compile(rb"^Message-ID:[ \t]*(?:\r?\n[ \t]+)?(<[^>\r\n]+>)", re.I | re.M)
+
+
+def message_id(raw: bytes):
+    head = raw.split(b"\r\n\r\n", 1)[0] if b"\r\n\r\n" in raw else raw.split(b"\n\n", 1)[0]
+    m = MSGID_RE.search(head)
+    return m.group(1).decode(errors="replace").strip() if m else None
+
+
 def parse_quota(qdata):
     """Retorna dict amb used/limit en bytes, o None si no hi ha límit d'emmagatzematge."""
     res = {}
@@ -507,6 +516,125 @@ class MailSession:
                                            r"(\Seen)"), "Error en marcar")
             return len(uids)
         return self._run(go)
+
+    # -- migració
+    def namespace(self):
+        """Prefix personal del servidor (p. ex. «INBOX.» a Courier/alguns Dovecot) i delimitador."""
+        if getattr(self, "_ns", None) is not None:
+            return self._ns
+
+        def go():
+            if "NAMESPACE" not in self.caps:
+                return ("", None)
+            try:
+                typ, dat = self.imap.namespace()
+            except imaplib.IMAP4.error:
+                return ("", None)
+            if typ != "OK" or not dat or not dat[0]:
+                return ("", None)
+            m = re.match(rb'\s*\(\("((?:[^"\\]|\\.)*)"\s+("(?:[^"\\]|\\.)*"|NIL)', dat[0])
+            if not m:
+                return ("", None)
+            d = m.group(2).decode()
+            return (imap_utf7_decode(m.group(1).decode()), None if d.upper() == "NIL" else d[1:-1].replace("\\\\", "\\"))
+        self._ns = self._run(go)
+        return self._ns
+
+    def root_name(self, name):
+        """Nom per crear una carpeta a l'arrel, respectant el prefix del servidor."""
+        prefix, _ = self.namespace()
+        if prefix and name.upper() != "INBOX" and not name.startswith(prefix):
+            return prefix + name
+        return name
+
+    def uid_sizes(self, folder):
+        def go():
+            self._select(folder, readonly=True)
+            typ, dat = self.imap.uid("SEARCH", None, "ALL")
+            self._check(typ, dat, "Error en cercar")
+            uids = [int(x) for x in (dat[0].split() if dat and dat[0] else [])]
+            out = []
+            for ch in chunks(uids, 1000):
+                typ, fd = self.imap.uid("FETCH", uid_set(ch), "(UID RFC822.SIZE)")
+                self._check(typ, fd, "Error en llegir les mides")
+                for it in fd:
+                    line = it[0] if isinstance(it, tuple) else it
+                    if not isinstance(line, (bytes, bytearray)):
+                        continue
+                    m, z = META_UID.search(line), META_SIZE.search(line)
+                    if m:
+                        out.append((int(m.group(1)), int(z.group(1)) if z else 0))
+            out.sort()
+            return out
+        return self._run(go)
+
+    def fetch_raw(self, folder, uids):
+        """Correus sencers (RFC822) amb els seus marcadors i data d'arribada."""
+        def go():
+            self._select(folder, readonly=True)
+            typ, fd = self.imap.uid("FETCH", uid_set(uids), "(UID FLAGS INTERNALDATE BODY.PEEK[])")
+            self._check(typ, fd, f"Error en llegir correus de «{folder}»")
+            recs, cur = [], None
+            for it in fd:
+                if isinstance(it, tuple):
+                    cur = {"meta": it[0], "raw": it[1] or b""}
+                    recs.append(cur)
+                elif isinstance(it, (bytes, bytearray)) and cur is not None and not NEW_REC.match(it):
+                    cur["meta"] += b" " + bytes(it)
+            out = []
+            for r in recs:
+                m = META_UID.search(r["meta"])
+                if not m:
+                    continue
+                fl = META_FLAGS.search(r["meta"])
+                dt = META_DATE.search(r["meta"])
+                out.append({"uid": int(m.group(1)), "raw": bytes(r["raw"]),
+                            "flags": fl.group(1).decode(errors="replace").split() if fl else [],
+                            "date": dt.group(1).decode() if dt else None})
+            return out
+        return self._run(go)
+
+    def message_ids(self, folder):
+        def go():
+            self._select(folder, readonly=True)
+            typ, dat = self.imap.uid("SEARCH", None, "ALL")
+            uids = dat[0].split() if typ == "OK" and dat and dat[0] else []
+            ids = set()
+            for ch in chunks(uids, 1000):
+                typ, fd = self.imap.uid("FETCH", uid_set(ch), "(UID BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])")
+                for it in fd or []:
+                    if isinstance(it, tuple):
+                        mid = message_id(it[1] or b"")
+                        if mid:
+                            ids.add(mid)
+            return ids
+        return self._run(go)
+
+    def ensure_folder(self, name):
+        """Crea la carpeta si no existeix. Retorna True si l'ha creada."""
+        def go():
+            typ, dat = self.imap.create(q(name))
+            if typ == "OK":
+                try:
+                    self.imap.subscribe(q(name))
+                except Exception:
+                    pass
+                return True
+            txt = dat[0].decode(errors="replace") if dat and isinstance(dat[0], bytes) else str(dat)
+            if "ALREADYEXISTS" in txt.upper() or "EXIST" in txt.upper():
+                return False
+            raise MailError(f"No s'ha pogut crear «{name}»: {txt}")
+        return self._run(go)
+
+    def append(self, folder, raw, flags, date):
+        keep = [f for f in flags if f.lower() in ("\\seen", "\\flagged", "\\answered", "\\draft")]
+
+        def go():
+            self._selected = None  # APPEND no depèn de la carpeta oberta
+            typ, dat = self.imap.append(q(folder), "(" + " ".join(keep) + ")" if keep else None,
+                                        f'"{date}"' if date else None, raw)
+            self._check(typ, dat, f"No s'ha pogut importar a «{folder}»")
+        self._run(go)
 
     # -- informació
     def info(self):
