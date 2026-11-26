@@ -266,6 +266,57 @@ a{color:var(--accent)}
 .ib.red{color:var(--red)} .ib.red:hover{border-color:var(--red);background:var(--red-soft);color:var(--red)}
 .ib.ghost{visibility:hidden}
 .macts{display:flex;gap:6px;justify-content:flex-end}
+/* lector i editor */
+.dov{position:fixed;inset:0;background:rgba(22,20,45,.28);z-index:40;display:flex;justify-content:flex-end;animation:f .12s}
+.drawer{background:var(--bg);width:min(1000px,calc(100vw - 260px));height:100vh;display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(20,18,50,.22);animation:sl .18s ease-out}
+@keyframes sl{from{transform:translateX(40px);opacity:.4}}
+.dhead{background:#fff;padding:18px 26px 16px;border-bottom:1px solid var(--line)}
+.dbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dbar .grow{flex:1}
+.dsubj{font-size:24px;font-weight:700;margin:14px 0 12px;letter-spacing:-.2px;line-height:1.25;word-break:break-word}
+.dmeta{display:flex;gap:14px;align-items:flex-start}
+.dmeta .who{flex:1;min-width:0;font-size:14px;color:var(--muted);line-height:1.55}
+.dmeta .who b{color:var(--ink);font-size:16px}
+.dmeta .who .em{color:var(--muted)}
+.dmeta .when{color:var(--muted);font-size:13.5px;white-space:nowrap;text-align:right}
+.dbody{flex:1;overflow:auto;padding:18px 26px 40px}
+.imgbar{display:flex;align-items:center;gap:12px;background:#fff8e8;border:1px solid #ffe2a8;color:#7a5200;border-radius:12px;padding:9px 14px;font-size:14px;margin-bottom:14px}
+.imgbar .btn{height:32px;padding:0 12px;font-size:13px}
+.mframe{width:100%;border:0;background:#fff;border-radius:16px;display:block;min-height:120px;box-shadow:var(--shadow)}
+.atts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 16px}
+.att{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:8px 8px 8px 12px;max-width:340px}
+.att .nm{min-width:0;font-size:13.5px}
+.att .nm b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att .nm span{color:var(--muted);font-size:12px}
+.att.bad{border-color:#f6c3c5;background:#fff6f6}
+.att .ib{width:32px;height:32px}
+.att svg{color:var(--accent)}
+.att.bad > svg{color:var(--red)}
+.cmp{width:min(980px,calc(100vw - 260px))}
+.cfields{background:#fff;padding:6px 26px 0;border-bottom:1px solid var(--line)}
+.crow{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line2);min-height:48px}
+.crow:last-child{border-bottom:0}
+.crow label{width:74px;color:var(--muted);font-size:14px;flex:none}
+.crow input{flex:1;border:0;outline:none;font-size:15px;height:46px;background:none;min-width:0}
+.crow .lnk{border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer;font-size:13.5px}
+.etool{display:flex;gap:4px;align-items:center;padding:8px 18px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.etool .tb{width:38px;height:36px;border-radius:9px;border:0;background:none;display:grid;place-items:center;cursor:pointer;color:var(--ink2);font-size:16px}
+.etool .tb:hover{background:#f1f1f7}
+.etool .tb.on{background:var(--accent-soft);color:var(--accent)}
+.etool .sep{width:1px;height:22px;background:var(--line);margin:0 6px}
+.editor{flex:1;overflow:auto;background:#fff;padding:22px 28px;outline:none;font-size:15px;line-height:1.6;color:#1d1d29}
+.editor:empty::before{content:attr(data-ph);color:var(--faint)}
+.editor blockquote{margin:8px 0 0 4px;padding-left:14px;border-left:3px solid #d9d6ff;color:#4a4b5c}
+.editor ul,.editor ol{padding-left:28px;margin:6px 0}
+.editor p{margin:0 0 8px}
+.cfoot{background:#fff;border-top:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cfoot .atts{margin:0;flex:1 1 100%}
+.cfoot .att{padding:6px 6px 6px 10px}
+.sizebar{font-size:13px;color:var(--muted)}
+.sizebar.over{color:var(--red);font-weight:600}
+.cdrop{outline:3px dashed var(--accent);outline-offset:-10px}
+.row .acts{opacity:.9}
+.row{cursor:pointer}
 .mig{padding:28px 30px;display:flex;flex-direction:column;gap:4px}
 .mig h2{margin:0;font-size:22px}
 .mig .hd{display:flex;align-items:center;gap:14px;margin-bottom:12px}
@@ -344,6 +395,20 @@ const P = {
   eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
   plug:'<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
   read:'<path d="M3 9.5 12 4l9 5.5V19a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19z"/><path d="m3 10 9 6 9-6"/>',
+  reply:'<path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 6 6v1"/>',
+  replyall:'<path d="M11 7 6 12l5 5"/><path d="M7 7 2 12l5 5"/><path d="M6 12h8a6 6 0 0 1 6 6v1"/>',
+  forward:'<path d="m15 7 5 5-5 5"/><path d="M20 12H10a6 6 0 0 0-6 6v1"/>',
+  clip:'<path d="m20.5 11.5-8.2 8.2a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  up:'<path d="m6 15 6-6 6 6"/>', down:'<path d="m6 9 6 6 6-6"/>',
+  pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
+  ext:'<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M19 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"/>',
+  ul:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+  ol:'<path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 4.5h1.2V9M3.8 9h2.6M3.8 14.5c.4-.7 2.4-.9 2.4.4 0 1.1-2.4 1.8-2.4 3.1h2.6"/>',
+  indent:'<path d="M11 6h9M11 12h9M11 18h9"/><path d="m4 9 3 3-3 3"/>',
+  outdent:'<path d="M11 6h9M11 12h9M11 18h9"/><path d="M7 9 4 12l3 3"/>',
+  clear:'<path d="M5 6h11M10 6l-3 13"/><path d="m15 15 5 5M20 15l-5 5"/>',
   migrate:'<path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/>',
   upload:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
   download:'<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
@@ -556,7 +621,11 @@ function modal(html, cls = "") {
   ov.addEventListener("mousedown", e => { if (e.target === ov && !ov.dataset.lock) ov.close?.(null); });
   return ov;
 }
-function closeTop() { const o = $$(".ov").pop(); if (o && !o.dataset.lock) o.close ? o.close(null) : o.remove(); }
+function closeTop() {
+  const o = $$(".ov").pop();
+  if (o) { if (!o.dataset.lock) o.close ? o.close(null) : o.remove(); return; }
+  const d = $$(".dov").pop(); if (d) d.close ? d.close() : d.remove();
+}
 function confirmBox({title, body, ok = "D'acord", danger = false, check = null}) {
   return new Promise(res => {
     const ov = modal(`<h2>${title}</h2><div class="lead">${body}</div>
@@ -845,7 +914,8 @@ async function pageCorreus(m) {
       <select class="sel" id="field"><option value="sender">Remitent</option><option value="subject">Assumpte</option><option value="all">Remitent i assumpte</option></select>
       <select class="sel" id="sort"><option value="new">Més recents</option><option value="old">Més antics</option><option value="size">Més grans</option><option value="sender">Per remitent</option></select>
       <span class="spacer"></span>
-      <button class="btn" id="refresh" title="Torna a llegir els correus del servidor">${ic("refresh", 20)} Actualitza</button>
+      <button class="btn" id="refresh" title="Torna a llegir els correus del servidor">${ic("refresh", 20)}</button>
+      <button class="btn pri" id="compose">${ic("pen", 19)} Redacta</button>
     </div>
     <div class="tabs" id="tabs"></div>
     <div class="selrow" id="selrow"></div>
@@ -862,6 +932,7 @@ async function pageCorreus(m) {
   $("#field").onchange = e => { S.field = e.target.value; renderList(); };
   $("#sort").onchange = e => { S.sort = e.target.value; renderList(); };
   $("#refresh").onclick = async () => { try { await loadMessages(curFolder(), true); await refreshFolders(); S.sel.clear(); render(); } catch (e) { toast(e.message, 1); } };
+  $("#compose").onclick = () => compose({mode: "new"});
   if (!c) {
     try { c = await loadMessages(); } catch (e) { $("#list").innerHTML = `<div class="empty"><h3>No s'han pogut llegir els correus</h3><p>${esc(e.message)}</p></div>`; return; }
     if (S.page !== "correus") return;
@@ -916,6 +987,7 @@ function renderList() {
     if (a === "move") return doMove([uid]);
     if (e.target.closest("button")) return;
     if (e.target.tagName === "LABEL") return;   // el label ja dispara el click de l'input
+    if (!e.target.closest(".chk")) return openMessage(uid, ms);   // clic a la fila: obre el correu
     S.sel.has(uid) ? S.sel.delete(uid) : S.sel.add(uid);
     if (e.target.tagName !== "INPUT") $("input", row).checked = S.sel.has(uid);
     row.classList.toggle("sel", S.sel.has(uid));
@@ -1221,6 +1293,290 @@ async function pageInfo(m) {
   bindAccBar();
 }
 
+/* ============================================================ LECTOR */
+const fullDate = ts => ts ? new Date(ts * 1000).toLocaleString("ca-ES", {weekday: "short", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
+const who = a => a.name ? `${a.name} <${a.email}>` : a.email;
+const whoHtml = list => list.map(a => a.name ? `${esc(a.name)} <span class="em">&lt;${esc(a.email)}&gt;</span>` : esc(a.email)).join(", ");
+const REMOTE_RE = /(src|background)\s*=\s*["']?\s*(https?:)?\/\/|url\(\s*["']?\s*(https?:)?\/\//i;
+
+function frameDoc(v, allowImages) {
+  const csp = `default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:${allowImages ? " https: http:" : ""}`;
+  const head = `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><base target="_blank">
+    <style>html,body{margin:0}body{padding:22px 26px;font-family:Segoe UI,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1d1d29;word-wrap:break-word;overflow-wrap:anywhere}
+    img{max-width:100%;height:auto}pre.txt{white-space:pre-wrap;font:15px/1.6 Segoe UI,Arial,sans-serif;margin:0}a{color:#5a4cf0}
+    blockquote{margin:8px 0 8px 4px;padding-left:12px;border-left:3px solid #d9d6ff;color:#4a4b5c}</style>`;
+  if (v.html) return `<!DOCTYPE html><html><head>${head}</head><body>${v.html}</body></html>`;
+  const t = esc(v.text || "").replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  return `<!DOCTYPE html><html><head>${head}</head><body><pre class="txt">${t || "<i style='color:#999'>(correu buit)</i>"}</pre></body></html>`;
+}
+
+async function openMessage(uid, list) {
+  const folder = curFolder(), aid = S.cur;
+  let v;
+  try { v = await acall("open", {id: aid, folder, uid}); }
+  catch (e) { return toast(e.message, 1); }
+  const c = S.cache[ckey(folder)], m = c?.messages.find(x => x.uid === uid);
+  if (m && !m.seen) {
+    m.seen = true;
+    const fo = folderObj(folder); if (fo && fo.unseen) fo.unseen--;
+    if (S.page === "correus") { renderList(); renderNavTree(); }
+  }
+  showReader(v, uid, list || []);
+}
+
+function showReader(v, uid, list) {
+  $(".dov.reader")?.remove();
+  const folder = curFolder();
+  const i = list.findIndex(x => x.uid === uid);
+  const prev = i > 0 ? list[i - 1] : null, next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
+  const remote = v.html && REMOTE_RE.test(v.html);
+  const ov = document.createElement("div"); ov.className = "dov reader";
+  ov.innerHTML = `<div class="drawer">
+    <div class="dhead">
+      <div class="dbar">
+        <button class="btn sm pri" data-r="reply">${ic("reply", 17)} Respon</button>
+        <button class="btn sm" data-r="replyall">${ic("replyall", 17)} Respon a tots</button>
+        <button class="btn sm" data-r="forward">${ic("forward", 17)} Reenvia</button>
+        <span class="grow"></span>
+        <button class="ib" data-r="move" title="Mou a una carpeta">${ic("move", 18)}</button>
+        <button class="ib red" data-r="del" title="Elimina">${ic("trash", 18)}</button>
+        <span class="sep" style="width:1px;height:24px;background:var(--line);margin:0 4px"></span>
+        <button class="ib" data-r="prev" title="Anterior" ${prev ? "" : "disabled style='opacity:.35'"}>${ic("up", 18)}</button>
+        <button class="ib" data-r="next" title="Següent" ${next ? "" : "disabled style='opacity:.35'"}>${ic("down", 18)}</button>
+        <button class="ib" data-r="close" title="Tanca (Esc)">${ic("x", 18)}</button>
+      </div>
+      <div class="dsubj">${esc(v.subject)}</div>
+      <div class="dmeta">${avatar(v.from.email, (v.from.name || v.from.email)[0])}
+        <div class="who"><b>${esc(v.from.name || v.from.email)}</b> ${v.from.name ? `<span class="em">&lt;${esc(v.from.email)}&gt;</span>` : ""}
+          ${v.to.length ? `<div>Per a: ${whoHtml(v.to)}</div>` : ""}${v.cc.length ? `<div>Cc: ${whoHtml(v.cc)}</div>` : ""}</div>
+        <div class="when">${esc(fullDate(v.date))}</div></div>
+    </div>
+    <div class="dbody">
+      ${remote ? `<div class="imgbar">${ic("image", 18)}<span style="flex:1">S'han bloquejat les imatges externes per protegir la teva privadesa.</span><button class="btn" id="showimg">Mostra-les</button></div>` : ""}
+      ${v.attachments.length ? `<div class="atts">${v.attachments.map(a => `<div class="att ${a.dangerous ? "bad" : ""}" title="${esc(a.name)}">${ic(a.dangerous ? "spam" : "clip", 18)}
+          <div class="nm"><b>${esc(a.name)}</b><span>${fmtSize(a.size)}${a.dangerous ? " · fitxer perillós" : ""}</span></div>
+          <button class="ib" data-open="${a.idx}" title="Obre">${ic("ext", 16)}</button><button class="ib" data-save="${a.idx}" title="Desa a Baixades">${ic("download", 16)}</button></div>`).join("")}</div>` : ""}
+      <iframe class="mframe" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"></iframe>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const fr = $(".mframe", ov);
+  let ro;
+  const load = allow => {
+    fr.onload = () => {
+      const d = fr.contentDocument; if (!d) return;
+      const fit = () => { fr.style.height = Math.max(120, d.documentElement.scrollHeight) + "px"; };
+      fit(); ro?.disconnect(); ro = new ResizeObserver(fit); ro.observe(d.body);
+      d.addEventListener("click", e => {
+        const a = e.target.closest && e.target.closest("a[href]"); if (!a) return;
+        e.preventDefault();
+        const h = a.getAttribute("href") || "";
+        if (/^mailto:/i.test(h)) { const addr = decodeURIComponent(h.slice(7).split("?")[0]); compose({mode: "new", to: addr}); }
+        else if (/^https?:/i.test(h)) call("open_url", {url: h}).catch(err => toast(err.message, 1));
+      });
+    };
+    fr.srcdoc = frameDoc(v, allow);
+  };
+  load(false);
+  const close = () => { ro?.disconnect(); ov.remove(); };
+  ov.close = close;
+  ov.addEventListener("mousedown", e => { if (e.target === ov) close(); });
+  $("#showimg", ov) && ($("#showimg", ov).onclick = () => { $(".imgbar", ov).remove(); load(true); });
+  $$("[data-open],[data-save]", ov).forEach(b => b.onclick = async () => {
+    const idx = b.dataset.open ?? b.dataset.save, a = v.attachments[+idx], open = b.dataset.open != null;
+    if (a.dangerous && open) {
+      const ok = await confirmBox({title: "Fitxer potencialment perillós", danger: true, ok: "Mostra'l a la carpeta",
+        body: `«${esc(a.name)}» és un tipus de fitxer que pot executar programes. Només l'obris si confies totalment en qui te l'ha enviat. El desarem i et mostrarem on és, però no l'obrirem.`});
+      if (!ok) return;
+    }
+    try { const r = await call("att_save", {view: v.view, idx: +idx, open}); if (!open) toast(`Desat a ${r.path}`); }
+    catch (e) { toast(e.message, 1); }
+  });
+  ov.onclick = async e => {
+    const k = e.target.closest("[data-r]")?.dataset.r; if (!k) return;
+    if (k === "close") return close();
+    if (k === "prev" && prev) { close(); return openMessage(prev.uid, list); }
+    if (k === "next" && next) { close(); return openMessage(next.uid, list); }
+    if (k === "reply" || k === "replyall" || k === "forward") return compose({mode: k, src: v});
+    if (k === "del") { close(); await doDelete([uid], folder); return; }
+    if (k === "move") { close(); await doMove([uid], null, folder); }
+  };
+}
+
+/* ============================================================ EDITOR */
+/* L'editor del navegador niua les subllistes fora del punt pare (<ol><li>A</li><ol>…</ol>) i a vegades
+   posa llistes dins d'un <p>. Ho deixem en l'estructura estàndard perquè es vegi bé a tots els clients. */
+function normalizeHtml(src) {
+  const box = document.createElement("div"); box.innerHTML = src;
+  box.querySelectorAll("ul > ul, ul > ol, ol > ul, ol > ol").forEach(l => {
+    const prev = l.previousElementSibling;
+    if (prev && prev.tagName === "LI") prev.appendChild(l);
+    else { const li = document.createElement("li"); li.style.listStyle = "none"; l.replaceWith(li); li.appendChild(l); }
+  });
+  [...box.querySelectorAll("p")].reverse().forEach(p => {
+    if (p.querySelector("ul,ol,p,div,blockquote,table")) p.replaceWith(...p.childNodes);
+  });
+  box.querySelectorAll("p:empty").forEach(p => p.remove());
+  return box.innerHTML;
+}
+function quoteHeader(v) {
+  const n = v.from.name ? `${esc(v.from.name)} &lt;${esc(v.from.email)}&gt;` : esc(v.from.email);
+  return `El ${esc(fullDate(v.date))}, ${n} va escriure:`;
+}
+function fwdHeader(v) {
+  return `<p>---------- Missatge reenviat ----------<br>De: ${esc(who(v.from))}<br>Data: ${esc(fullDate(v.date))}<br>Assumpte: ${esc(v.subject)}<br>Per a: ${esc(v.to.map(who).join(", "))}${v.cc.length ? `<br>Cc: ${esc(v.cc.map(who).join(", "))}` : ""}</p>`;
+}
+function prefixSubject(s, mode) {
+  s = s === "(sense assumpte)" ? "" : s;
+  if (mode === "forward") return /^\s*(fwd?|rv|enc|tr|i)\s*:/i.test(s) ? s : "Fwd: " + s;
+  return /^\s*(re|res|aw|r|sv)\s*:/i.test(s) ? s : "Re: " + s;
+}
+function recipients(v, mode) {
+  const me = (acc()?.email || "").toLowerCase();
+  const base = (v.reply_to.length ? v.reply_to : [v.from]);
+  if (mode === "reply") return {to: base.map(who).join(", "), cc: ""};
+  const seen = new Set([me]), to = [], cc = [];
+  for (const a of [...base, ...v.to]) if (a.email && !seen.has(a.email)) { seen.add(a.email); to.push(who(a)); }
+  for (const a of v.cc) if (a.email && !seen.has(a.email)) { seen.add(a.email); cc.push(who(a)); }
+  return {to: to.join(", "), cc: cc.join(", ")};
+}
+
+function compose({mode = "new", src = null, to = ""} = {}) {
+  const a = acc(); if (!a) return;
+  $(".dov.composer")?.remove();
+  const files = [];   // {aid?, name, size, fwdIdx?}
+  let r = {to, cc: ""}, subject = "", bodyHtml = "<p><br></p>";
+  if (src && mode !== "forward") {
+    r = recipients(src, mode);
+    subject = prefixSubject(src.subject, mode);
+    bodyHtml = `<p><br></p><p><br></p><p style="color:#6c7084">${quoteHeader(src)}</p><blockquote>${src.safe_html}</blockquote>`;
+  } else if (src) {
+    subject = prefixSubject(src.subject, mode);
+    bodyHtml = `<p><br></p><p><br></p>${fwdHeader(src)}<blockquote>${src.safe_html}</blockquote>`;
+    src.attachments.filter(x => !x.dangerous).forEach(x => files.push({name: x.name, size: x.size, fwdIdx: x.idx}));
+  }
+  const titles = {new: "Correu nou", reply: "Respon", replyall: "Respon a tots", forward: "Reenvia"};
+  const skipped = src && mode === "forward" ? src.attachments.filter(x => x.dangerous) : [];
+  const ov = document.createElement("div"); ov.className = "dov composer";
+  ov.innerHTML = `<div class="drawer cmp">
+    <div class="dhead" style="padding-bottom:14px"><div class="dbar"><b style="font-size:20px">${titles[mode]}</b><span class="grow"></span>
+      <button class="ib" data-c="close" title="Tanca">${ic("x", 18)}</button></div></div>
+    <div class="cfields">
+      <div class="crow"><label>De</label><span style="font-size:15px">${esc(a.sender_name ? `${a.sender_name} <${a.email}>` : a.email)}</span></div>
+      <div class="crow"><label>Per a</label><input id="c_to" value="${esc(r.to)}" placeholder="nom@domini.cat, altra@domini.cat"><button class="lnk" id="c_more" ${r.cc ? "hidden" : ""}>Cc / Cco</button></div>
+      <div class="crow" id="r_cc" ${r.cc ? "" : "hidden"}><label>Cc</label><input id="c_cc" value="${esc(r.cc)}"></div>
+      <div class="crow" id="r_bcc" ${r.cc ? "" : "hidden"}><label>Cco</label><input id="c_bcc" placeholder="Còpia oculta"></div>
+      <div class="crow"><label>Assumpte</label><input id="c_sub" value="${esc(subject)}"></div>
+    </div>
+    <div class="etool">
+      <button class="tb" data-x="bold" title="Negreta (Ctrl+B)"><b>N</b></button>
+      <button class="tb" data-x="italic" title="Cursiva (Ctrl+I)"><i style="font-family:Georgia,serif">C</i></button>
+      <button class="tb" data-x="underline" title="Subratllat (Ctrl+U)"><u>S</u></button>
+      <button class="tb" data-x="strikeThrough" title="Ratllat"><s>R</s></button>
+      <span class="sep"></span>
+      <button class="tb" data-x="insertUnorderedList" title="Llista de punts">${ic("ul", 19)}</button>
+      <button class="tb" data-x="insertOrderedList" title="Llista numerada">${ic("ol", 19)}</button>
+      <button class="tb" data-x="indent" title="Subllista / augmenta el sagnat (Tab)">${ic("indent", 19)}</button>
+      <button class="tb" data-x="outdent" title="Redueix el sagnat (Maj+Tab)">${ic("outdent", 19)}</button>
+      <span class="sep"></span>
+      <button class="tb" data-x="removeFormat" title="Treu el format">${ic("clear", 19)}</button>
+    </div>
+    <div class="editor" id="c_ed" contenteditable="true" data-ph="Escriu el missatge…">${bodyHtml}</div>
+    <div class="cfoot">
+      <div class="atts" id="c_atts"></div>
+      <button class="btn pri" id="c_send">${ic("send", 18)} Envia</button>
+      <button class="btn" id="c_att">${ic("clip", 18)} Adjunta fitxers</button>
+      <input type="file" id="c_file" multiple hidden>
+      <span class="sizebar" id="c_size"></span><span class="spacer"></span>
+      <button class="btn" data-c="discard" style="color:var(--muted)">${ic("trash", 17)} Descarta</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const ed = $("#c_ed", ov);
+  document.execCommand("defaultParagraphSeparator", false, "p");
+  document.execCommand("styleWithCSS", false, false);
+  const drawFiles = () => {
+    const total = files.reduce((t, f) => t + (f.size || 0), 0);
+    $("#c_atts", ov).innerHTML = files.map((f, i) => `<div class="att" title="${esc(f.name)}">${ic("clip", 17)}<div class="nm"><b>${esc(f.name)}</b>
+        <span>${f.uploading ? "Carregant…" : fmtSize(f.size)}${f.fwdIdx != null ? " · de l'original" : ""}</span></div>
+        <button class="ib" data-rm="${i}" title="Treu">${ic("x", 15)}</button></div>`).join("")
+      + (skipped.length ? `<div class="note warn" style="margin:0;padding:8px 12px;font-size:13px">No s'han inclòs ${skipped.length} adjunt${skipped.length > 1 ? "s" : ""} perillós${skipped.length > 1 ? "os" : ""}: ${skipped.map(x => esc(x.name)).join(", ")}</div>` : "");
+    $("#c_atts", ov).style.display = files.length || skipped.length ? "" : "none";
+    const over = total > 20 * 1048576;
+    const warnG = !over && PROV[a.type] && total > 18 * 1048576;
+    $("#c_size", ov).className = "sizebar" + (over ? " over" : "");
+    $("#c_size", ov).textContent = files.length ? `${fmtSize(total)} de 20 MB${over ? " · massa gran" : warnG ? ` · ${PROV[a.type].name} podria rebutjar-lo (uns 18 MB reals)` : ""}` : "";
+    $$("[data-rm]", ov).forEach(b => b.onclick = () => {
+      const [f] = files.splice(+b.dataset.rm, 1);
+      if (f.aid) call("attach_drop", {aid: f.aid}).catch(() => {});
+      drawFiles();
+    });
+  };
+  const addFiles = async list => {
+    for (const file of list) {
+      if (file.size > 20 * 1048576) { toast(`«${file.name}» fa més de 20 MB.`, 1); continue; }
+      const f = {name: file.name, size: file.size, uploading: true}; files.push(f); drawFiles();
+      try {
+        const res = await fetch("/api/attach", {method: "POST", headers: {"X-Token": TOKEN, "X-Filename": encodeURIComponent(file.name)}, body: file}).then(x => x.json());
+        if (!res.ok) throw new Error(res.error);
+        f.aid = res.aid; f.uploading = false;
+      } catch (e) { files.splice(files.indexOf(f), 1); toast(e.message, 1); }
+      drawFiles();
+    }
+  };
+  drawFiles();
+  $("#c_att", ov).onclick = () => $("#c_file", ov).click();
+  $("#c_file", ov).onchange = e => { addFiles([...e.target.files]); e.target.value = ""; };
+  const drawer = $(".drawer", ov);
+  drawer.ondragover = e => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); drawer.classList.add("cdrop"); } };
+  drawer.ondragleave = e => { if (!drawer.contains(e.relatedTarget)) drawer.classList.remove("cdrop"); };
+  drawer.ondrop = e => { if (e.dataTransfer.files.length) { e.preventDefault(); drawer.classList.remove("cdrop"); addFiles([...e.dataTransfer.files]); } };
+  $("#c_more", ov).onclick = () => { $("#r_cc", ov).hidden = false; $("#r_bcc", ov).hidden = false; $("#c_more", ov).hidden = true; $("#c_cc", ov).focus(); };
+  const tool = () => $$(".tb", ov).forEach(b => { try { b.classList.toggle("on", ["bold", "italic", "underline", "strikeThrough", "insertUnorderedList", "insertOrderedList"].includes(b.dataset.x) && document.queryCommandState(b.dataset.x)); } catch (e) {} });
+  $$(".tb", ov).forEach(b => { b.onmousedown = e => e.preventDefault(); b.onclick = () => { ed.focus(); document.execCommand(b.dataset.x, false, null); tool(); }; });
+  const selTool = () => { if (document.activeElement === ed) tool(); };
+  document.addEventListener("selectionchange", selTool);
+  ed.onkeydown = e => {
+    if (e.key === "Tab") {
+      const inList = (() => { let n = getSelection().anchorNode; while (n && n !== ed) { if (n.nodeName === "LI") return true; n = n.parentNode; } return false; })();
+      if (inList) { e.preventDefault(); document.execCommand(e.shiftKey ? "outdent" : "indent"); }
+    }
+  };
+  const initial = ed.innerHTML;
+  const dirty = () => ed.innerHTML !== initial || files.some(f => f.aid) || ($("#c_to", ov).value.trim() && mode === "new");
+  const close = async (force) => {
+    if (!force && dirty()) {
+      const ok = await confirmBox({title: "Descartar el missatge?", body: "Es perdrà el que has escrit i els adjunts.", ok: "Descarta", danger: true});
+      if (!ok) return;
+    }
+    files.filter(f => f.aid).forEach(f => call("attach_drop", {aid: f.aid}).catch(() => {}));
+    document.removeEventListener("selectionchange", selTool);
+    ov.remove();
+  };
+  ov.close = () => close();
+  ov.addEventListener("mousedown", e => { if (e.target === ov) close(); });
+  ov.onclick = e => { const k = e.target.closest("[data-c]")?.dataset.c; if (k) close(); };
+  $("#c_send", ov).onclick = async () => {
+    if (files.some(f => f.uploading)) return toast("Espera que acabin de carregar els adjunts.", 1);
+    if (!$("#c_to", ov).value.trim() && !$("#c_cc", ov).value.trim() && !$("#c_bcc", ov).value.trim()) { $("#c_to", ov).focus(); return toast("Escriu almenys un destinatari.", 1); }
+    if (!$("#c_sub", ov).value.trim()) {
+      const ok = await confirmBox({title: "Enviar sense assumpte?", body: "El missatge no té assumpte.", ok: "Envia igualment"});
+      if (!ok) return;
+    }
+    const b = $("#c_send", ov); b.disabled = true; b.innerHTML = `${ic("send", 18)} Enviant…`;
+    try {
+      const res = await acall("send", {id: a.id, mode, to: $("#c_to", ov).value, cc: $("#c_cc", ov).value, bcc: $("#c_bcc", ov).value,
+        subject: $("#c_sub", ov).value, html: normalizeHtml(ed.innerHTML), attachments: files.filter(f => f.aid).map(f => f.aid),
+        fwd_view: src?.view, fwd_idx: files.filter(f => f.fwdIdx != null).map(f => f.fwdIdx), source_view: src?.view,
+        in_reply_to: src && mode !== "forward" ? src.message_id : null, references: src && mode !== "forward" ? src.references : null});
+      files.forEach(f => delete f.aid);
+      toast(res.saved ? `Enviat. Còpia desada a «${fname(folderObj(res.saved)) || res.saved}».` : "Enviat.");
+      if (res.saved) delete S.cache[ckey(res.saved)];
+      close(true); refreshFolders().then(() => S.page === "correus" && renderNavTree());
+    } catch (e) { toast(e.message, 1); b.disabled = false; b.innerHTML = `${ic("send", 18)} Envia`; }
+  };
+  if (mode === "new" && !to) $("#c_to", ov).focus();
+  else { ed.focus(); const rg = document.createRange(); rg.setStart(ed.firstChild || ed, 0); rg.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(rg); }
+}
+
 /* ============================================================ MIGRACIÓ */
 S.mig = {folder: null, sub: true, upload: null, info: null, parent: "", dedupe: true, plan: null, last: null};
 function exportSet(root, sub) {
@@ -1424,11 +1780,18 @@ function accountForm(existing) {
         <div class="fld"><label>Port</label><input id="f_sp" type="number" value="${e.smtp_port || 465}"></div>
         <div class="fld"><label>Seguretat</label><select id="f_ss"><option value="ssl">SSL/TLS</option><option value="starttls">STARTTLS</option><option value="none">Cap</option></select></div></div>
     </div>
+    <div class="sect">ENVIAMENT</div>
+    <div class="g2"><div class="fld"><label>Nom que veuran els destinataris</label><input id="f_sn" value="${esc(e.sender_name || "")}" placeholder="p. ex. Anna Puig (opcional)"></div>
+      <div class="fld"><label>Còpia dels enviats</label><select id="f_sv"><option value="1">Desa-la a «Enviats»</option><option value="0">No la desis (el servidor ja ho fa)</option></select>
+      <small id="svhint"></small></div></div>
     <div class="fld" style="margin-top:6px"><label>Quan eliminis correus</label><select id="f_dm"><option value="trash">Mou-los a la paperera (recuperables)</option><option value="permanent">Esborra'ls definitivament</option></select></div>
     <div class="note" id="res" style="display:none"></div>
     <div class="foot"><button class="btn" data-x>Cancel·la</button><button class="btn" id="test">${ic("plug", 18)} Prova la connexió</button><button class="btn pri" id="save">${ic("check", 18)} Desa</button></div>`, "wide");
   ov.close = () => ov.remove();
   $("#f_is", ov).value = e.imap_security || "ssl"; $("#f_ss", ov).value = e.smtp_security || "ssl"; $("#f_dm", ov).value = e.delete_mode || "trash";
+  let svTouched = !!(existing && existing.save_sent != null);
+  $("#f_sv", ov).value = (existing && existing.save_sent != null ? existing.save_sent : !PROV[type]) ? "1" : "0";
+  $("#f_sv", ov).onchange = () => { svTouched = true; };
   const upd = () => {
     $$(".type", ov).forEach(b => b.classList.toggle("on", b.dataset.t === type));
     const pv = PROV[type];
@@ -1436,6 +1799,8 @@ function accountForm(existing) {
     $("#w_user", ov).style.display = pv ? "none" : "";
     $("#gnote", ov).style.display = pv ? "" : "none";
     if (pv) $("#gname", ov).textContent = pv.name;
+    if (!svTouched && $("#f_sv", ov)) $("#f_sv", ov).value = pv ? "0" : "1";
+    if ($("#svhint", ov)) $("#svhint", ov).textContent = pv ? `${pv.name} ja desa sol una còpia a Enviats; si la desa també el programa, quedaria duplicada.` : "";
     $("#pwl", ov).textContent = pv ? "Contrasenya d'aplicació" : "Contrasenya";
     $("#savehint", ov).textContent = $("#f_save", ov).checked ? "Es guarda xifrada amb el teu usuari de Windows." : "Te la demanarà cada vegada que obris aquest compte.";
   };
@@ -1459,7 +1824,8 @@ function accountForm(existing) {
     username: PROV[type] ? $("#f_email", ov).value.trim() : $("#f_user", ov).value.trim(),
     imap_host: $("#f_ih", ov).value.trim(), imap_port: +$("#f_ip", ov).value, imap_security: $("#f_is", ov).value,
     smtp_host: $("#f_sh", ov).value.trim(), smtp_port: +$("#f_sp", ov).value, smtp_security: $("#f_ss", ov).value,
-    save_password: $("#f_save", ov).checked, delete_mode: $("#f_dm", ov).value});
+    save_password: $("#f_save", ov).checked, delete_mode: $("#f_dm", ov).value,
+    sender_name: $("#f_sn", ov).value.trim(), save_sent: $("#f_sv", ov).value === "1"});
   const res = (cls, html) => { const r = $("#res", ov); r.className = "note " + cls; r.style.display = "block"; r.innerHTML = html; };
   $("[data-x]", ov).onclick = () => ov.remove();
   $("#test", ov).onclick = async () => {
@@ -1509,6 +1875,12 @@ function pageAjuda(m) {
         <li><b>Servidor SMTP</b> (opcional, per a futures funcions): port <b>465</b> SSL/TLS o <b>587</b> STARTTLS.</li>
         <li><b>Usuari</b>: normalment l'adreça de correu completa. <b>Contrasenya</b>: la mateixa que fas servir a Roundcube.</li></ol>
       <p style="color:var(--muted)">Prem «Prova la connexió» abans de desar per comprovar que tot és correcte.</p></div>
+    <div class="card"><h3 style="margin-top:0">Llegir, respondre i reenviar</h3>
+      <p>A «Correus», clica un correu per obrir-lo. Les imatges externes es bloquegen per privadesa fins que prems «Mostra-les».
+      Per enviar es fa servir el servidor de sortida (SMTP) del compte, amb la mateixa contrasenya (a Gmail i Yahoo, la contrasenya d'aplicació).</p>
+      <ol><li>Els adjunts poden sumar fins a <b>20 MB</b> per missatge. A Gmail i Yahoo, el límit real és d'uns 18 MB, perquè en enviar-los ocupen un terç més.</li>
+        <li>No es poden adjuntar programes ni scripts (.exe, .bat, .msi, .js, .vbs…), ni .zip que en continguin.</li>
+        <li>Gmail i Yahoo ja desen sols una còpia a «Enviats». Als altres comptes la desa el programa (es pot canviar a «Comptes → Edita»).</li></ol></div>
     <div class="card"><h3 style="margin-top:0">Contrasenyes</h3>
       <p>Si marques «Desa la contrasenya», es guarda xifrada amb el teu usuari de Windows (només el teu usuari en aquest ordinador la pot llegir). Si no, el programa te la demana cada vegada que obres el compte i només la recorda mentre està obert.</p>
       ${S.configPath ? `<p style="color:var(--muted)">Configuració: <code>${esc(S.configPath)}</code></p>` : ""}</div></div>`;
@@ -1518,7 +1890,7 @@ function pageAjuda(m) {
 /* ---------------------------------------------------------------- init */
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") return closeTop();
-  if ((e.key === "Delete") && S.page === "correus" && S.sel.size && !$(".ov") && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) doDelete([...S.sel]);
+  if ((e.key === "Delete") && S.page === "correus" && S.sel.size && !$(".ov") && !$(".dov") && !document.activeElement.isContentEditable && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) doDelete([...S.sel]);
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f" && (S.page === "correus" || S.page === "remitents")) { e.preventDefault(); ($("#q") || $("#sq"))?.focus(); }
 });
 setInterval(() => fetch("/api/ping", {method: "POST", headers: {"X-Token": TOKEN}, body: "{}"}).catch(() => {}), 30000);

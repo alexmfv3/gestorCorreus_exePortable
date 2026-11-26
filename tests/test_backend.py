@@ -43,7 +43,45 @@ def main():
 
     res = wait(app.api("messages", {"id": acc["id"], "folder": "INBOX"})["job"])
     msgs = res["messages"]
-    assert len(msgs) == 1500, len(msgs)
+    assert len(msgs) == 1502, len(msgs)
+    # Obrir un correu HTML amb adjunts, respondre'l i enviar-lo (SMTP simulat)
+    rich = next(m for m in msgs if m["subject"].startswith("Reunió de dimarts"))
+    assert not rich["seen"]
+    v = app.api("open", {"id": acc["id"], "folder": "INBOX", "uid": rich["uid"]})
+    assert v["was_unseen"] and v["from"]["email"] == "marta.puig@gmail.com"
+    assert "data:image/png" in v["html"] and "<script" not in v["safe_html"] and "tracker" not in v["safe_html"]
+    assert [a["name"] for a in v["attachments"]] == ["Acta reunió.pdf", "instal·lador.exe"]
+    assert v["attachments"][1]["dangerous"]
+    sent = []
+    app.send_mail = lambda cfg, pw, msg: sent.append(msg)
+    try:
+        app.api("send", {"id": acc["id"], "to": "x@y.cat", "html": "hola", "fwd_view": v["view"], "fwd_idx": [1]})
+        raise AssertionError("hauria d'haver rebutjat l'exe")
+    except imap_client.MailError as e:
+        assert ".exe" in str(e)
+    r = app.api("send", {"id": acc["id"], "mode": "reply", "to": "Marta <marta.puig@gmail.com>", "cc": "", "bcc": "ocult@x.cat",
+                         "subject": "Re: Reunió", "html": "<p>Gràcies <b>Marta</b></p><ol><li>u<ol><li>sub</li></ol></li></ol>",
+                         "fwd_view": v["view"], "fwd_idx": [0], "source_view": v["view"], "in_reply_to": v["message_id"],
+                         "references": v["references"]})
+    assert r["saved"] == "Sent", r
+    msg = sent[-1]
+    assert msg["In-Reply-To"] == "<reunio-123@gmail.com>" and msg["Bcc"]
+    assert [p.get_filename() for p in msg.iter_attachments()] == ["Acta reunió.pdf"]
+    assert "<ol><li>u<ol><li>sub</li></ol></li></ol>" in msg.get_body(("html",)).get_content()
+    fk = fake_imap._shared["jo@x.cat"]
+    import email as _em
+    from email import policy as _pol
+    assert any(_em.message_from_bytes(m["raw"], policy=_pol.default)["Subject"] == "Re: Reunió" for m in fk.boxes["Sent"].values())
+    assert "\\Answered" in fk.boxes["INBOX"][rich["uid"]]["flags"] and "\\Seen" in fk.boxes["INBOX"][rich["uid"]]["flags"]
+    plain = next(m for m in msgs if m["subject"] == "Avís en text pla")
+    pv = app.api("open", {"id": acc["id"], "folder": "INBOX", "uid": plain["uid"]})
+    assert pv["html"] is None and "<b>Això no és negreta</b>" in pv["text"] and "&lt;b&gt;" in pv["safe_html"]
+    try:
+        app.api("send", {"id": acc["id"], "to": "no-es-una-adreça", "html": "x"})
+        raise AssertionError("adreça dolenta acceptada")
+    except imap_client.MailError:
+        pass
+
     info = [m["uid"] for m in msgs if m["from_email"] == "ofertas@infojobs.net"]
     assert len(info) == 60
     r = wait(app.api("delete", {"id": acc["id"], "folder": "INBOX", "uids": info, "uidvalidity": res["uidvalidity"]})["job"])

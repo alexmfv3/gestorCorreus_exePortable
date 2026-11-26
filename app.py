@@ -6,6 +6,7 @@ Si hi ha pywebview instal·lat s'obre en una finestra pròpia; si no, al navegad
 import base64
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -16,8 +17,9 @@ import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import mailview
 import migration
-from imap_client import MailError, MailSession, test_smtp
+from imap_client import MailError, MailSession, send_mail, test_smtp
 
 APP_NAME = "Gestor de Correus"
 BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
@@ -69,8 +71,9 @@ def uploads_dir():
 
 def clean_uploads():
     for f in os.listdir(uploads_dir()):
+        p = os.path.join(uploads_dir(), f)
         try:
-            os.remove(os.path.join(uploads_dir(), f))
+            shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
         except OSError:
             pass
 
@@ -78,6 +81,23 @@ def clean_uploads():
 def safe_name(s):
     import re as _re
     return _re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", s).strip(" ._")[:60] or "correu"
+
+
+views = {}   # correus oberts: id -> dades (amb els adjunts en memòria)
+
+
+def downloads_dir():
+    d = os.path.join(os.path.expanduser("~"), "Downloads")
+    return d if os.path.isdir(d) else exports_dir()
+
+
+def unique_path(d, name):
+    base, ext = os.path.splitext(safe_name(name) or "fitxer")
+    path, i = os.path.join(d, base + ext), 1
+    while os.path.exists(path):
+        i += 1
+        path = os.path.join(d, f"{base} ({i}){ext}")
+    return path
 
 
 def open_path(path, select=False):
@@ -186,7 +206,7 @@ def forget_password(acc):
 
 
 PUBLIC_FIELDS = ("id", "type", "label", "email", "username", "imap_host", "imap_port", "imap_security",
-                 "smtp_host", "smtp_port", "smtp_security", "save_password", "delete_mode")
+                 "smtp_host", "smtp_port", "smtp_security", "save_password", "delete_mode", "sender_name", "save_sent")
 
 
 def public(acc):
@@ -220,6 +240,9 @@ def normalize(a):
     acc["smtp_security"] = acc.get("smtp_security") or "ssl"
     acc["save_password"] = bool(acc.get("save_password"))
     acc["delete_mode"] = "permanent" if acc.get("delete_mode") == "permanent" else "trash"
+    acc["sender_name"] = (acc.get("sender_name") or "").strip()
+    # Gmail i Yahoo ja desen sols la còpia a Enviats quan s'envia per SMTP
+    acc["save_sent"] = (acc["type"] not in PRESETS) if a.get("save_sent") is None else bool(a.get("save_sent"))
     if not acc["email"] or not acc["imap_host"]:
         raise MailError("Cal indicar l'adreça de correu i el servidor IMAP.")
     return acc
@@ -480,6 +503,114 @@ def api(action, p):
             raise MailError("El fitxer ja no hi és. Torna'l a triar.")
         return start_job(lambda pr: migration.do_import(s, up, p.get("parent") or "", p.get("dedupe", True), pr))
 
+    if action == "open":
+        s = get_session(p["id"])
+        recs = s.fetch_raw(p["folder"], [int(p["uid"])])
+        if not recs:
+            raise MailError("Aquest correu ja no és al servidor. Prem «Actualitza».")
+        r = recs[0]
+        v = mailview.parse(r["raw"])
+        vid = uuid.uuid4().hex
+        views[vid] = {"parts": v.pop("_parts"), "acc": p["id"], "folder": p["folder"], "uid": int(p["uid"]), "view": v}
+        while len(views) > 15:
+            views.pop(next(iter(views)))
+        seen = "\\seen" in [f.lower() for f in r["flags"]]
+        if not seen:
+            s.add_flags(p["folder"], [int(p["uid"])], ["\\Seen"])
+        return {"view": vid, "was_unseen": not seen, **v, "safe_html": mailview.body_as_safe_html(v)}
+
+    if action == "att_save":
+        v = views.get(p["view"])
+        if not v:
+            raise MailError("Torna a obrir el correu.")
+        part = v["parts"][int(p["idx"])]
+        if p.get("open"):
+            d = os.path.join(uploads_dir(), "oberts")
+            os.makedirs(d, exist_ok=True)
+            path = unique_path(d, part["name"])
+        else:
+            path = unique_path(downloads_dir(), part["name"])
+        with open(path, "wb") as fh:
+            fh.write(part["data"])
+        if p.get("open"):
+            if mailview.ext_of(part["name"]) in mailview.DANGEROUS:
+                open_path(path, select=True)  # mai executar directament un fitxer perillós
+            else:
+                open_path(path)
+        else:
+            open_path(path, select=True)
+        return {"path": path}
+
+    if action == "send":
+        acc = get_acc(p["id"])
+        to, bad1 = mailview.parse_addrs(p.get("to", ""))
+        cc, bad2 = mailview.parse_addrs(p.get("cc", ""))
+        bcc, bad3 = mailview.parse_addrs(p.get("bcc", ""))
+        bad = bad1 + bad2 + bad3
+        if bad:
+            raise MailError("Adreça no vàlida: " + ", ".join(bad))
+        if not (to or cc or bcc):
+            raise MailError("Escriu almenys un destinatari.")
+        files = []
+        for aid in p.get("attachments", []):
+            meta = attachments_tmp.get(aid)
+            if not meta:
+                raise MailError("Un adjunt ja no hi és. Torna'l a afegir.")
+            with open(meta["path"], "rb") as fh:
+                files.append((meta["name"], fh.read()))
+        fv = views.get(p.get("fwd_view") or "")
+        for idx in p.get("fwd_idx", []):
+            if not fv:
+                raise MailError("Torna a obrir el correu original per reenviar-ne els adjunts.")
+            part = fv["parts"][int(idx)]
+            why = mailview.danger_reason(part["name"], part["data"])
+            if why:
+                raise MailError(why)
+            files.append((part["name"], part["data"]))
+        total = sum(len(d) for _, d in files)
+        if total > mailview.MAX_TOTAL:
+            raise MailError(f"Els adjunts sumen {total / 1048576:.1f} MB i el màxim és 20 MB.")
+        msg = mailview.build(acc, to, cc, bcc, p.get("subject", "").strip(), p.get("html", ""), files,
+                             p.get("in_reply_to") or None, p.get("references") or None)
+        s = get_session(p["id"])
+        send_mail(acc, s.password, msg)
+        saved = None
+        if acc.get("save_sent", acc.get("type") not in PRESETS):
+            sent = next((f["name"] for f in s.list_folders(with_status=False) if f["special"] == "sent"), None)
+            if sent:
+                try:
+                    s.append(sent, msg.as_bytes(), ["\\Seen"], None)
+                    saved = sent
+                except MailError:
+                    saved = None
+        src = views.get(p.get("source_view") or "")
+        if src and p.get("mode") in ("reply", "replyall", "forward"):
+            s.add_flags(src["folder"], [src["uid"]], ["\\Answered"] if p["mode"] != "forward" else ["$Forwarded"])
+        for aid in p.get("attachments", []):
+            meta = attachments_tmp.pop(aid, None)
+            if meta:
+                try:
+                    os.remove(meta["path"])
+                except OSError:
+                    pass
+        return {"saved": saved, "size": len(msg.as_bytes())}
+
+    if action == "attach_drop":
+        meta = attachments_tmp.pop(p.get("aid"), None)
+        if meta:
+            try:
+                os.remove(meta["path"])
+            except OSError:
+                pass
+        return {}
+
+    if action == "open_url":
+        u = p.get("url", "")
+        if not re.match(r"^https?://", u, re.I):
+            raise MailError("Enllaç no permès.")
+        webbrowser.open(u)
+        return {}
+
     if action == "job_cancel":
         j = jobs.get(p["job"])
         if j:
@@ -553,6 +684,8 @@ class Handler(BaseHTTPRequestHandler):
         action = self.path.strip("/").split("/")[-1]
         if action == "upload":
             return self._upload()
+        if action == "attach":
+            return self._attach()
         try:
             n = int(self.headers.get("Content-Length") or 0)
             p = json.loads(self.rfile.read(n) or b"{}")
@@ -592,6 +725,30 @@ def _upload(self):
 
 
 Handler._upload = _upload
+
+attachments_tmp = {}
+
+
+def _attach(self):
+    from urllib.parse import unquote
+    n = int(self.headers.get("Content-Length") or 0)
+    name = os.path.basename(unquote(self.headers.get("X-Filename") or "fitxer"))
+    if n > mailview.MAX_TOTAL:
+        self.rfile.read(n)
+        return self._send(200, {"ok": False, "error": f"«{name}» fa més de 20 MB."})
+    data = self.rfile.read(n)
+    why = mailview.danger_reason(name, data)
+    if why:
+        return self._send(200, {"ok": False, "error": f"«{name}»: {why}"})
+    aid = uuid.uuid4().hex
+    path = os.path.join(uploads_dir(), "att_" + aid)
+    with open(path, "wb") as fh:
+        fh.write(data)
+    attachments_tmp[aid] = {"name": name, "path": path, "size": len(data)}
+    return self._send(200, {"ok": True, "aid": aid, "name": name, "size": len(data)})
+
+
+Handler._attach = _attach
 
 
 def find_app_browser():

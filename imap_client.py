@@ -508,6 +508,15 @@ class MailSession:
             return {"count": done, "trash": None}
         return self._run(go)
 
+    def add_flags(self, folder, uids, flags):
+        def go():
+            self._select(folder)
+            self.imap.uid("STORE", uid_set(uids), "+FLAGS.SILENT", "(" + " ".join(flags) + ")")
+        try:
+            self._run(go)
+        except (MailError, imaplib.IMAP4.error):
+            pass  # marcar és opcional
+
     def set_seen(self, folder, uids, seen, uidvalidity=None):
         def go():
             self._verify(folder, uidvalidity)
@@ -658,6 +667,53 @@ class MailSession:
                     quota["supported"] = False
             return {"capabilities": sorted(self.caps), "quota": quota}
         return self._run(go)
+
+
+def _smtp(cfg, password):
+    host = cfg.get("smtp_host")
+    if not host:
+        raise MailError("Aquest compte no té servidor de sortida (SMTP). Configura'l a «Comptes → Edita».")
+    port, sec = int(cfg.get("smtp_port") or 465), cfg.get("smtp_security", "ssl")
+    try:
+        if sec == "ssl":
+            s = smtplib.SMTP_SSL(host, port, timeout=60, context=ssl.create_default_context())
+        else:
+            s = smtplib.SMTP(host, port, timeout=60)
+            s.ehlo()
+            if sec == "starttls":
+                s.starttls(context=ssl.create_default_context())
+                s.ehlo()
+    except (OSError, smtplib.SMTPException) as e:
+        raise MailError(f"No s'ha pogut connectar al servidor de sortida {host}:{port} ({e})")
+    pw = password.replace(" ", "") if cfg.get("type") in ("gmail", "yahoo") else password
+    try:
+        s.login(cfg.get("username") or cfg.get("email"), pw)
+    except smtplib.SMTPAuthenticationError:
+        s.close()
+        raise MailError("El servidor de sortida (SMTP) no accepta l'usuari o la contrasenya.")
+    return s
+
+
+def send_mail(cfg, password, msg):
+    s = _smtp(cfg, password)
+    try:
+        refused = s.send_message(msg)
+    except smtplib.SMTPRecipientsRefused as e:
+        raise MailError("El servidor ha rebutjat els destinataris: " + ", ".join(e.recipients))
+    except smtplib.SMTPDataError as e:
+        txt = e.smtp_error.decode(errors="replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error)
+        hint = " Potser el missatge és massa gran." if e.smtp_code in (552, 554) else ""
+        raise MailError(f"El servidor no ha acceptat el missatge ({e.smtp_code} {txt}).{hint}")
+    except smtplib.SMTPSenderRefused as e:
+        raise MailError(f"El servidor no accepta aquest remitent ({e.smtp_code}). Potser el missatge és massa gran.")
+    except (OSError, smtplib.SMTPException) as e:
+        raise MailError(f"Error en enviar: {e}")
+    finally:
+        try:
+            s.quit()
+        except Exception:
+            pass
+    return refused
 
 
 def test_smtp(cfg, password):

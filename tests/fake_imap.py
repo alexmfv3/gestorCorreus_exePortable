@@ -64,6 +64,7 @@ class FakeIMAP:
         for i in range(5):
             self._add("[Gmail]/Paperera" if gmail else "Trash", "Vell", "vell@x.com", f"Esborrat {i}", now, True)
         if not gmail and not yahoo:
+            self._rich()
             for box, n in (("GENCAT", 3), ("GENCAT/TSOC", 4), ("GENCAT/TSOC/Expedients", 2)):
                 for i in range(n):
                     self._add(box, "Generalitat", "noreply@gencat.cat", f"{box.split('/')[-1]}: comunicació {i+1}",
@@ -79,6 +80,49 @@ class FakeIMAP:
         raw = hdr.encode() + f"Hola,\r\naixò és el cos de «{subj}». Adéu!\r\n".encode()
         self.boxes[box][uid] = {"hdr": hdr.encode(), "raw": raw, "dt": dt, "size": random.randint(3000, 400000),
                                 "flags": {"\\Seen"} if seen else set()}
+
+    def _rich(self):
+        from email.message import EmailMessage
+        import io, zipfile
+        now = datetime(2026, 11, 26, 9, 30, tzinfo=timezone.utc)
+        m = EmailMessage()
+        m["From"] = '"Marta Puig" <marta.puig@gmail.com>'
+        m["To"] = "jo@empresa.cat, Anna Roca <anna@empresa.cat>"
+        m["Cc"] = "pere@empresa.cat"
+        m["Subject"] = "Reunió de dimarts: acta i propers passos"
+        m["Message-ID"] = "<reunio-123@gmail.com>"
+        m["Date"] = "Thu, 26 Nov 2026 09:30:00 +0000"
+        m.set_content("Hola,\nAdjunto l'acta.\n")
+        m.add_alternative(
+            '<html><head><style>.t{color:#0a7}</style><script>parent.document.body.innerHTML="HACKED"</script></head>'
+            '<body><div style="max-width:600px"><img src="cid:logo@x" alt="logo" width="120">'
+            '<h2 class="t">Reunió de dimarts</h2><p>Hola a tots,</p><p>Us passo l\'<b>acta</b> i els punts:</p>'
+            '<ul><li>Pressupost <i>2027</i></li><li>Calendari<ul><li>Gener</li><li>Febrer</li></ul></li></ul>'
+            '<p><img src="https://tracker.example.com/pixel.gif" width="1" height="1">'
+            '<img src="https://picsum.photos/400/120" alt="foto remota"></p>'
+            '<p onclick="alert(1)">Més info a <a href="https://gencat.cat">gencat.cat</a> o '
+            '<a href="mailto:secretaria@empresa.cat">escriu a secretaria</a>.</p><p>Salutacions,<br>Marta</p></div>'
+            '</body></html>', subtype="html")
+        import base64 as _b64
+        png = _b64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGNoYPiPFTEMSwkAUmV/gcOb8i0AAAAASUVORK5CYII=")
+        m.get_payload()[1].add_related(png, maintype="image", subtype="png", cid="<logo@x>")
+        m.add_attachment(b"%PDF-1.4 acta", maintype="application", subtype="pdf", filename="Acta reunió.pdf")
+        m.add_attachment(b"MZ fake", maintype="application", subtype="octet-stream", filename="instal·lador.exe")
+        self._add_raw("INBOX", m.as_bytes(), now, False)
+        t = EmailMessage()
+        t["From"] = "Servidor <noreply@hosting.cat>"
+        t["To"] = "jo@empresa.cat"
+        t["Subject"] = "Avís en text pla"
+        t["Message-ID"] = "<pla-1@hosting.cat>"
+        t["Date"] = "Thu, 26 Nov 2026 08:00:00 +0000"
+        t.set_content("Bon dia,\n\nAquest correu és text pla.\n  - Línia amb sagnat\nVisita https://hosting.cat/estat per veure l'estat.\n\n<b>Això no és negreta</b>\n")
+        self._add_raw("INBOX", t.as_bytes(), now - timedelta(hours=1), False)
+
+    def _add_raw(self, box, raw, dt, seen):
+        uid = self.next_uid[box]
+        self.next_uid[box] += 1
+        hdr = raw.split(b"\n\n", 1)[0].replace(b"\r", b"").replace(b"\n", b"\r\n") + b"\r\n\r\n"
+        self.boxes[box][uid] = {"hdr": hdr, "raw": raw, "dt": dt, "size": len(raw), "flags": {"\\Seen"} if seen else set()}
 
     @staticmethod
     def _unq(n):

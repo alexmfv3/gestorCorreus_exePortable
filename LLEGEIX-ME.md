@@ -22,6 +22,11 @@ Cada `push` a `main` torna a compilar l'`.exe` automàticament (GitHub Actions).
 - **Correus**: arbre de carpetes plegable a l'esquerra (amb cercador). Cerca per
   nom o adreça del remitent, selecciona'ls tots i elimina'ls o mou-los. Pots
   arrossegar correus damunt de qualsevol carpeta de l'arbre. Tecla Supr = eliminar.
+- **Llegir i respondre**: clica un correu per obrir-lo (HTML o text pla, amb les imatges
+  externes bloquejades fins que les vulguis veure). Respon, respon a tots o reenvia amb
+  un editor amb negreta, cursiva, ratllat, llistes de punts i numerades i subllistes
+  (Tab / Maj+Tab). Adjunts de fins a 20 MB per missatge; no s'accepten programes ni
+  scripts (.exe, .bat, .msi, .js…), ni .zip que en continguin.
 - **Remitents**: qui t'envia més correus, per adreça o per domini sencer
   (p. ex. tot `infojobs.net`), i elimina'ls o mou-los tots d'un cop.
 - **Carpetes**: arbre amb subcarpetes; crea, crea subcarpetes, reanomena,
